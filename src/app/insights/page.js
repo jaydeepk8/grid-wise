@@ -7,6 +7,10 @@ import KPI from "@/components/Dashboard/KPI";
 import EnergyChart from "@/components/Dashboard/EnergyChart";
 import RenewableMix from "@/components/Dashboard/RenewableMix";
 import FacilityStatus from "@/components/Dashboard/FacilityStatus";
+import AIInsights from "@/components/Dashboard/AIInsights";
+import AIRecommendations from "@/components/Dashboard/AIRecommendations";
+
+
 
 export default function InsightsPage() {
   return (
@@ -14,7 +18,7 @@ export default function InsightsPage() {
       <Navbar />
 
       <main className="flex-1 bg-[#f6f8f4]">
-        {/* ================= Executive Overview ================= */}
+        
         <section className="max-w-7xl mx-auto px-6 pt-24">
           <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div>
@@ -28,7 +32,7 @@ export default function InsightsPage() {
               </p>
             </div>
 
-            {/* IMPORT DATA BUTTON */}
+           
             <button className="flex items-center gap-2 bg-[#1f2933] text-white px-6 py-3 rounded-full text-sm font-medium shadow hover:opacity-90 transition">
               <span className="material-symbols-outlined text-sm">
                 file_upload
@@ -38,24 +42,26 @@ export default function InsightsPage() {
           </div>
         </section>
 
-        {/* ================= KPI ROW ================= */}
+       
         <section className="max-w-7xl mx-auto px-6 mt-12">
           <KPI />
         </section>
 
-        {/* ================= CHARTS ================= */}
-        <section className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <EnergyChart />
-          </div>
+       
+          <section className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <EnergyChart />
+            </div>
 
-          <RenewableMix />
+            <AIInsights />
+          </section>
+
+
+       
+        <section className="max-w-7xl mx-auto px-6 mt-12">
+          <AIRecommendations />
         </section>
 
-        {/* ================= FACILITY / AI INSIGHTS ================= */}
-        <section className="max-w-7xl mx-auto px-6 mt-12 pb-20">
-          <FacilityStatus />
-        </section>
       </main>
 
       <Footer />

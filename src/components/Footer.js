@@ -11,13 +11,13 @@ export default function Footer() {
               eco
             </span>
             <span className="text-lg font-serif font-bold tracking-tight text-[#2d3a2d]">
-              EcoEnergy
+              GridWise
             </span>
           </div>
 
           {/* Center: Copyright */}
           <p className="text-slate-400 text-sm font-light text-center">
-            © 2024 EcoEnergy Systems. All rights reserved.
+            © 2026 GridWise Systems. All rights reserved.
           </p>
 
           {/* Right: Links */}

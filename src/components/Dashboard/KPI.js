@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 
 export default function KPI() {
-  const [predictedDemand, setPredictedDemand] = useState(null);
-  const [loading, setLoading] = useState(true);
+const [currentDemand, setCurrentDemand] = useState(null);
+const [predictedDemand, setPredictedDemand] = useState(null);
+const [peakRisk, setPeakRisk] = useState(null);
+const [renewableMix, setRenewableMix] = useState(null);
+const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     async function fetchPrediction() {
@@ -23,7 +27,12 @@ export default function KPI() {
         });
 
         const data = await res.json();
-        setPredictedDemand(data.predicted_next_hour_kwh);
+
+          setCurrentDemand(data.current_demand_kwh);
+          setPredictedDemand(data.predicted_next_hour_kwh);
+          setPeakRisk(data.peak_load_risk);
+          setRenewableMix(data.renewable_mix_percent);
+
       } catch (error) {
         console.error("Prediction API error:", error);
       } finally {
@@ -35,35 +44,24 @@ export default function KPI() {
   }, []);
 
   const kpis = [
-    {
-      title: "Current Demand",
-      value: "1,425 kW",
-      note: "▲ 3.2% vs baseline",
-      noteColor: "text-red-500",
-    },
-    {
-      title: "Predicted Demand",
-      value: loading
-        ? "Loading…"
-        : predictedDemand
-        ? `${predictedDemand} kW`
-        : "Unavailable",
-      note: "AI Confidence: 98%",
-      noteColor: "text-green-600",
-    },
-    {
-      title: "Peak Load Risk",
-      value: "Low Risk",
-      note: "Stability Index: High",
-      noteColor: "text-gray-500",
-    },
-    {
-      title: "Renewable Mix",
-      value: "82.5%",
-      note: "+12% Solar Harvest",
-      noteColor: "text-green-600",
-    },
-  ];
+  {
+    title: "Current Demand",
+    value: loading ? "Loading..." : `${currentDemand} kW`,
+  },
+  {
+    title: "Predicted Demand",
+    value: loading ? "Loading..." : `${predictedDemand} kW`,
+  },
+  {
+    title: "Peak Load Risk",
+    value: loading ? "Loading..." : peakRisk,
+  },
+  {
+    title: "Renewable Mix",
+    value: loading ? "Loading..." : `${renewableMix}%`,
+  },
+];
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
