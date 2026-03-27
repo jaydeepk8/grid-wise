@@ -4,7 +4,6 @@ export default function ExecutiveOverview() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="bg-[#F1F5EE] rounded-3xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-          {/* Left Content */}
           <div>
             <h1 className="font-display text-3xl md:text-4xl font-semibold text-[#2d3a2d] mb-3 leading-tight">
               Executive Overview
@@ -16,7 +15,6 @@ export default function ExecutiveOverview() {
             </p>
           </div>
 
-          {/* Right Button */}
           <div>
             <button className="flex items-center gap-2 bg-[#2d3a2d] text-white font-sans text-sm font-medium px-6 py-3 rounded-full shadow hover:bg-[#4a6741] transition-colors">
               <span className="material-symbols-outlined text-sm">

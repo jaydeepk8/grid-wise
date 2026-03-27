@@ -11,7 +11,6 @@ export default function FacilitiesHeader({ activeTab, setActiveTab }) {
   return (
     <section className="max-w-7xl mx-auto px-6 mt-10">
 
-      {/* Title */}
       <div className="mb-8">
         <h1 className="text-4xl font-serif text-[#2d3a2d] mb-2">
           Facilities Management Directory
@@ -21,7 +20,6 @@ export default function FacilitiesHeader({ activeTab, setActiveTab }) {
         </p>
       </div>
 
-      {/* Tabs */}
       <div className="flex flex-wrap items-center gap-3">
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
