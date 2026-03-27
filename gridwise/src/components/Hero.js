@@ -7,7 +7,7 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-end overflow-hidden">
 
-      {/* Background image */}
+     
       <div className="absolute inset-0">
         <Image
           src="/facilities/home_tree.png"
@@ -16,7 +16,7 @@ export default function Hero() {
           className="object-cover object-center"
           priority
         />
-        {/* Overlay for text readability */}
+        
         <div
           className="absolute inset-0"
           style={{
@@ -25,17 +25,17 @@ export default function Hero() {
         />
       </div>
 
-      {/* Content */}
+      
       <div className="relative z-10 max-w-7xl mx-auto px-10 pt-40 pb-24 w-full">
 
-        {/* Badge */}
+        
         <div className="inline-flex items-center border border-[#4a6741]/40 rounded-full px-4 py-1.5 mb-8">
           <span className="text-[#3a5030] text-[10px] font-semibold uppercase tracking-[0.2em]">
             Pioneering Net Zero
           </span>
         </div>
 
-        {/* Heading */}
+        
         <h1
           className="text-6xl md:text-7xl lg:text-[80px] text-[#1e2d1e] leading-[1.05] mb-10 max-w-2xl"
           style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 400 }}
@@ -51,7 +51,7 @@ export default function Hero() {
           Energy.
         </h1>
 
-        {/* Buttons */}
+        
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/facility"

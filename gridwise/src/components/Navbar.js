@@ -23,7 +23,7 @@ export default function Navbar() {
               eco
             </span>
             <span className="text-xl font-bold tracking-tight text-[#2d3a2d] font-serif">
-              Lumiq
+              GridWise
             </span>
           </Link>
 
