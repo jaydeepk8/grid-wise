@@ -54,7 +54,7 @@ export default function PredictPage() {
     <div className="bg-[#f1f4f1] min-h-screen flex flex-col pt-32">
       <div className="max-w-2xl mx-auto px-6 w-full flex-1">
 
-        {/* Header */}
+        
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 mb-10">
           <div className="flex items-center gap-4 mb-3">
             <div className="w-12 h-12 bg-[#4a6741]/15 rounded-2xl flex items-center justify-center">
@@ -73,7 +73,7 @@ export default function PredictPage() {
           </div>
         </div>
 
-        {/* Form */}
+        
         <div className="bg-white rounded-2xl px-8 py-8 shadow-sm mb-6">
           <h2 className="text-lg font-serif text-[#2d3a2d] mb-6">
             Input Parameters
@@ -81,7 +81,7 @@ export default function PredictPage() {
 
           <div className="space-y-5">
 
-            {/* Facility Type */}
+            
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
                 Facility Type
@@ -100,7 +100,7 @@ export default function PredictPage() {
               </select>
             </div>
 
-            {/* Current Load */}
+           
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
                 Current Load (kWh)
@@ -115,7 +115,7 @@ export default function PredictPage() {
               />
             </div>
 
-            {/* Temperature */}
+           
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
                 Temperature (°C)
@@ -130,7 +130,7 @@ export default function PredictPage() {
               />
             </div>
 
-            {/* Hour + Day row */}
+           
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
@@ -163,7 +163,7 @@ export default function PredictPage() {
             </div>
           </div>
 
-          {/* Submit */}
+          
           <button
             onClick={handlePredict}
             disabled={loading || !form.current_load || !form.temperature}
@@ -185,7 +185,7 @@ export default function PredictPage() {
           </button>
         </div>
 
-        {/* Error */}
+        
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl px-6 py-4 mb-6 flex items-center gap-3">
             <span className="material-symbols-outlined text-red-400">error</span>
@@ -193,7 +193,7 @@ export default function PredictPage() {
           </div>
         )}
 
-        {/* Result */}
+        
         {result && (
           <div className="bg-[#eef3ec] border border-[#4a6741]/20 rounded-2xl px-8 py-7 mb-10 text-center">
             <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">

@@ -37,7 +37,7 @@ export default function FacilityDetailPage() {
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* Breadcrumb */}
+        
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
           <span>/</span>
@@ -46,7 +46,7 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
-        {/* Header */}
+        
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-10">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -63,12 +63,12 @@ export default function FacilityDetailPage() {
           </span>
         </div>
 
-        {/* KPI */}
+        
         <section className="mb-10">
           <KPI facilityId={id} />
         </section>
 
-        {/* Chart + Insights */}
+        
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
             <EnergyChart facilityId={id} />
@@ -76,7 +76,7 @@ export default function FacilityDetailPage() {
           <AIInsights facilityId={id} />
         </section>
 
-        {/* Recommendations */}
+        
         <section className="mb-10">
           <AIRecommendations facilityId={id} />
         </section>
