@@ -36,7 +36,7 @@ export default function FacilityDetailPage() {
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* Breadcrumb */}
+        
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
           <span>/</span>
@@ -45,7 +45,7 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
-        {/* Header */}
+        
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-10">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -58,7 +58,7 @@ export default function FacilityDetailPage() {
             </div>
           </div>
 
-          {/* Right side — upload button only */}
+          
           <div className="flex items-center gap-3">
             {facility.hasData && (
               <FileUpload onDataLoaded={(data) => setUploadedData(data)} />
@@ -66,13 +66,13 @@ export default function FacilityDetailPage() {
           </div>
         </div>
 
-        {/* Uploaded data banner */}
+        
         {uploadedData && (
           <div className="bg-[#4a6741] rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
               <p className="text-white text-sm font-medium">
-                Showing predictions from your uploaded data ({uploadedData.total_rows} rows)
+                Showing predictions from your uploaded data
               </p>
             </div>
             <button
