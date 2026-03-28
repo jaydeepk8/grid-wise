@@ -22,12 +22,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-model = joblib.load(BASE_DIR / "model" / "hospital_energy_rf.pkl")
+# ✅ GLOBAL VARIABLES (instead of direct loading)
+model = None
+df = None
+df_ml = None
 
-df = pd.read_csv(BASE_DIR / "data" / "hospital_hourly_energy.csv")
-df_ml = pd.read_csv(BASE_DIR / "data" / "hospital_ml_ready.csv")
+# ✅ STARTUP LOADER (CRITICAL FIX)
+@app.on_event("startup")
+def load_resources():
+    global model, df, df_ml
+
+    print("🔥 Starting resource loading...")
+
+    model_path = BASE_DIR / "model" / "hospital_energy_rf.pkl"
+    data_path = BASE_DIR / "data"
+
+    print("BASE_DIR:", BASE_DIR)
+    print("Model exists:", model_path.exists())
+    print("Data files:", list(data_path.glob("*")))
+
+    model = joblib.load(model_path)
+    df = pd.read_csv(data_path / "hospital_hourly_energy.csv", parse_dates=["datetime"])
+    df_ml = pd.read_csv(data_path / "hospital_ml_ready.csv", parse_dates=["datetime"])
+
+    print("✅ All resources loaded successfully")
+
 
 class PredictionInput(BaseModel):
     datetime: str
@@ -146,7 +167,6 @@ def predict_energy(data: PredictionInput):
 async def upload_and_predict(file: UploadFile = File(...)):
     contents = await file.read()
 
-    # Parse file
     try:
         if file.filename.endswith(".csv"):
             uploaded_df = pd.read_csv(io.BytesIO(contents), parse_dates=["datetime"])
@@ -157,17 +177,14 @@ async def upload_and_predict(file: UploadFile = File(...)):
     except Exception as e:
         return {"error": f"Failed to parse file: {str(e)}"}
 
-    # Validate columns
     if "datetime" not in uploaded_df.columns or "energy_kwh" not in uploaded_df.columns:
         return {"error": "File must have 'datetime' and 'energy_kwh' columns."}
 
-    # Validate minimum rows
     if len(uploaded_df) < 6:
         return {"error": "Minimum 6 rows of data required for prediction."}
 
     uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
 
-    # Build inputs from uploaded data
     last_row = uploaded_df.iloc[-1]
     dt = pd.to_datetime(last_row["datetime"])
     hour = dt.hour
@@ -178,12 +195,10 @@ async def upload_and_predict(file: UploadFile = File(...)):
     rolling_3h_avg = float(uploaded_df["energy_kwh"].tail(3).mean())
     rolling_6h_avg = float(uploaded_df["energy_kwh"].tail(6).mean())
 
-    # Chart: last 12 rows
     chart_rows = uploaded_df.tail(12)
     time_labels = pd.to_datetime(chart_rows["datetime"]).dt.strftime("%H:%M").tolist()
     actual_series = chart_rows["energy_kwh"].round(2).tolist()
 
-    # Preview: first 5 rows
     preview = uploaded_df.head(5)[["datetime", "energy_kwh"]].copy()
     preview["datetime"] = preview["datetime"].astype(str)
     preview_data = preview.to_dict(orient="records")
