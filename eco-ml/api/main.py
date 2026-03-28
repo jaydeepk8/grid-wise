@@ -22,16 +22,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 
 model = joblib.load(BASE_DIR / "model" / "hospital_energy_rf.pkl")
 
-df = pd.read_csv(BASE_DIR / "data" / "hospital_hourly_energy.csv", parse_dates=["datetime"])
-df = df.sort_values("datetime").reset_index(drop=True)
-
-df_ml = pd.read_csv(BASE_DIR / "data" / "hospital_ml_ready.csv", parse_dates=["datetime"])
-df_ml = df_ml.sort_values("datetime").reset_index(drop=True)
-
+df = pd.read_csv(BASE_DIR / "data" / "hospital_hourly_energy.csv")
+df_ml = pd.read_csv(BASE_DIR / "data" / "hospital_ml_ready.csv")
 
 class PredictionInput(BaseModel):
     datetime: str

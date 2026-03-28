@@ -3,7 +3,5 @@ gridwise/.next/
 eco-ml/venv/
 .venv/
 **/__pycache__/
-*.pkl
-*.joblib
 .env.local
 .env*.local

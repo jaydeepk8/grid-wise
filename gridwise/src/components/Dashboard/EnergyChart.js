@@ -17,9 +17,10 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
 
   useEffect(() => {
     if (uploadedData) {
-      const { labels, actual, predicted } = uploadedData.chart;
-      setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
-      return;
+    if (!uploadedData.chart) return; 
+    const { labels, actual, predicted } = uploadedData.chart;
+    setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
+    return;
     }
 
     async function fetchData() {
