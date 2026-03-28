@@ -24,12 +24,10 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ GLOBAL VARIABLES (instead of direct loading)
 model = None
 df = None
 df_ml = None
 
-# ✅ STARTUP LOADER (CRITICAL FIX)
 @app.on_event("startup")
 def load_resources():
     global model, df, df_ml
@@ -47,7 +45,7 @@ def load_resources():
     df = pd.read_csv(data_path / "hospital_hourly_energy.csv", parse_dates=["datetime"])
     df_ml = pd.read_csv(data_path / "hospital_ml_ready.csv", parse_dates=["datetime"])
 
-    print("✅ All resources loaded successfully")
+    print("All resources loaded successfully")
 
 
 class PredictionInput(BaseModel):
