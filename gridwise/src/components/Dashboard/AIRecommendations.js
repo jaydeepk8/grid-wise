@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
 
-export default function AIRecommendations({ facilityId = "hospital" }) {
+export default function AIRecommendations({ facilityId = "hospital", uploadedData = null }) {
   const [recommendations, setRecommendations] = useState([]);
   const config = facilityConfig[facilityId];
 
@@ -11,11 +11,11 @@ export default function AIRecommendations({ facilityId = "hospital" }) {
     <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center min-h-[160px]">
       <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">recommend</span>
       <p className="text-slate-400 font-medium">No recommendations yet</p>
-      <p className="text-slate-300 text-sm mt-1">Connect {config.name} data to see AI recommendations.</p>
     </div>
   );
 
   useEffect(() => {
+    if (uploadedData) { setRecommendations(uploadedData.recommendations || []); return; }
     async function fetchData() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
@@ -30,7 +30,7 @@ export default function AIRecommendations({ facilityId = "hospital" }) {
       }
     }
     fetchData();
-  }, [facilityId]);
+  }, [facilityId, !!uploadedData]);
 
   const priorityColor = (priority) => {
     if (priority === "High") return "text-red-600";

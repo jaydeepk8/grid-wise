@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
 
-export default function AIInsights({ facilityId = "hospital" }) {
+export default function AIInsights({ facilityId = "hospital", uploadedData = null }) {
   const [insights, setInsights] = useState([]);
   const config = facilityConfig[facilityId];
 
@@ -11,11 +11,11 @@ export default function AIInsights({ facilityId = "hospital" }) {
     <div className="bg-white rounded-2xl p-6 shadow-sm h-full flex flex-col items-center justify-center text-center">
       <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">lightbulb</span>
       <p className="text-slate-400 font-medium">No insights yet</p>
-      <p className="text-slate-300 text-sm mt-1">Connect {config.name} data to see AI insights.</p>
     </div>
   );
 
   useEffect(() => {
+    if (uploadedData) { setInsights(uploadedData.insights || []); return; }
     async function fetchInsights() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
@@ -30,7 +30,7 @@ export default function AIInsights({ facilityId = "hospital" }) {
       }
     }
     fetchInsights();
-  }, [facilityId]);
+  }, [facilityId, !!uploadedData]);
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm h-full">

@@ -2,17 +2,20 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import Footer from "@/components/Footer";
 import KPI from "@/components/Dashboard/KPI";
 import EnergyChart from "@/components/Dashboard/EnergyChart";
 import AIInsights from "@/components/Dashboard/AIInsights";
 import AIRecommendations from "@/components/Dashboard/AIRecommendations";
+import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
+  const [uploadedData, setUploadedData] = useState(null);
 
   if (!facility) {
     return (
@@ -27,17 +30,13 @@ export default function FacilityDetailPage() {
     );
   }
 
-  const reportFacility = {
-    name: facility.name,
-    category: facility.category,
-    status: facility.status,
-  };
+  const reportFacility = { name: facility.name, category: facility.category, status: facility.status };
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
       <div className="max-w-7xl mx-auto px-6">
 
-        
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
           <span>/</span>
@@ -46,7 +45,7 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
-        
+        {/* Header */}
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-10">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -58,35 +57,62 @@ export default function FacilityDetailPage() {
               <p className="text-slate-500 text-sm mt-1 max-w-lg">{facility.description}</p>
             </div>
           </div>
-          <span className={`text-sm font-semibold px-4 py-2 rounded-full bg-white shadow-sm ${facility.statusColor}`}>
-            {facility.status}
-          </span>
+
+          {/* Right side — upload button only */}
+          <div className="flex items-center gap-3">
+            {facility.hasData && (
+              <FileUpload onDataLoaded={(data) => setUploadedData(data)} />
+            )}
+          </div>
         </div>
 
-        
+        {/* Uploaded data banner */}
+        {uploadedData && (
+          <div className="bg-[#4a6741] rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-white text-sm">check_circle</span>
+              <p className="text-white text-sm font-medium">
+                Showing predictions from your uploaded data ({uploadedData.total_rows} rows)
+              </p>
+            </div>
+            <button
+              onClick={() => setUploadedData(null)}
+              className="text-white/70 hover:text-white text-xs underline transition"
+            >
+              Reset to default
+            </button>
+          </div>
+        )}
+
+        {/* KPI */}
         <section className="mb-10">
-          <KPI facilityId={id} />
+          <KPI facilityId={id} uploadedData={uploadedData} />
         </section>
 
-        
+        {/* Chart + Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
-            <EnergyChart facilityId={id} />
+            <EnergyChart facilityId={id} uploadedData={uploadedData} />
           </div>
-          <AIInsights facilityId={id} />
+          <AIInsights facilityId={id} uploadedData={uploadedData} />
         </section>
 
-        
+        {/* Recommendations */}
         <section className="mb-10">
-          <AIRecommendations facilityId={id} />
+          <AIRecommendations facilityId={id} uploadedData={uploadedData} />
         </section>
 
+        {/* Download Report */}
         {facility.hasData && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
               <div>
                 <h3 className="text-lg font-serif text-[#2d3a2d] mb-1">Energy Prediction Report</h3>
-                <p className="text-sm text-slate-400">Download a full PDF report with predictions, insights and recommendations.</p>
+                <p className="text-sm text-slate-400">
+                  {uploadedData
+                    ? "Download PDF report based on your uploaded data."
+                    : "Download a full PDF report with predictions, insights and recommendations."}
+                </p>
               </div>
               <button
                 onClick={() => generateReport(reportFacility)}

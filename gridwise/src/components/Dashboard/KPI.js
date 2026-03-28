@@ -11,32 +11,24 @@ const NO_DATA_PLACEHOLDER = (name) => (
   </div>
 );
 
-export default function KPI({ facilityId = "hospital" }) {
-  const [currentDemand, setCurrentDemand] = useState(null);
-  const [predictedDemand, setPredictedDemand] = useState(null);
-  const [peakRisk, setPeakRisk] = useState(null);
-  const [renewableMix, setRenewableMix] = useState(null);
+export default function KPI({ facilityId = "hospital", uploadedData = null }) {
+  const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return NO_DATA_PLACEHOLDER(config.name);
 
   useEffect(() => {
+    if (uploadedData) { setLoading(false); return; }
     async function fetchPrediction() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-         
           body: JSON.stringify({ datetime: new Date().toISOString() }),
         });
-
         const data = await res.json();
-        setCurrentDemand(data.current_demand_kwh);
-        setPredictedDemand(data.predicted_next_hour_kwh);
-        setPeakRisk(data.peak_load_risk);
-        setRenewableMix(data.renewable_mix_percent);
+        setApiData(data);
       } catch (error) {
         console.error("Prediction API error:", error);
       } finally {
@@ -44,13 +36,15 @@ export default function KPI({ facilityId = "hospital" }) {
       }
     }
     fetchPrediction();
-  }, [facilityId]);
+  }, [facilityId, !!uploadedData]);
+
+  const source = uploadedData || apiData;
 
   const kpis = [
-    { title: "Current Demand",   value: loading ? "Loading..." : `${currentDemand} kW` },
-    { title: "Predicted Demand", value: loading ? "Loading..." : `${predictedDemand} kW` },
-    { title: "Peak Load Risk",   value: loading ? "Loading..." : peakRisk },
-    { title: "Renewable Mix",    value: loading ? "Loading..." : `${renewableMix}%` },
+    { title: "Current Demand",   value: loading ? "Loading..." : `${source?.current_demand_kwh} kW` },
+    { title: "Predicted Demand", value: loading ? "Loading..." : `${source?.predicted_next_hour_kwh} kW` },
+    { title: "Peak Load Risk",   value: loading ? "Loading..." : source?.peak_load_risk },
+    { title: "Renewable Mix",    value: loading ? "Loading..." : `${source?.renewable_mix_percent}%` },
   ];
 
   return (
