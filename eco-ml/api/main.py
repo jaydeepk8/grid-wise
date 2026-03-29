@@ -32,7 +32,7 @@ df_ml = None
 def load_resources():
     global model, df, df_ml
 
-    print("🔥 Starting resource loading...")
+    print("Starting resource loading...")
 
     model_path = BASE_DIR / "model" / "hospital_energy_rf.pkl"
     data_path = BASE_DIR / "data"
