@@ -1,12 +1,18 @@
-export async function generateReport(facility) {
+export async function generateReport(facility, uploadedData = null) {
   const { jsPDF } = await import("jspdf");
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ datetime: new Date().toISOString() }),
-  });
-  const data = await res.json();
+  let data;
+
+  if (uploadedData) {
+    data = uploadedData;
+  } else {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datetime: new Date().toISOString() }),
+    });
+    data = await res.json();
+  }
 
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -75,7 +81,12 @@ export async function generateReport(facility) {
   doc.setTextColor(100, 130, 100);
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
-  doc.text("Report covers last 12 hours of actual consumption + next-hour prediction.", 14, y);
+  doc.text(
+    uploadedData
+      ? "Report based on uploaded data + next-hour ML prediction."
+      : "Report covers last 12 hours of actual consumption + next-hour prediction.",
+    14, y
+  );
   y += 10;
 
   y = addDivider(y);

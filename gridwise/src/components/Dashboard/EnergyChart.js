@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, Label } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
 
-export default function EnergyChart({ facilityId = "hospital", uploadedData = null }) {
+export default function EnergyChart({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [chartData, setChartData] = useState([]);
   const config = facilityConfig[facilityId];
 
@@ -14,6 +14,8 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
       <p className="text-slate-400 font-medium">No chart data available yet</p>
     </div>
   );
+
+  
 
   useEffect(() => {
     if (uploadedData) {
@@ -39,6 +41,13 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
     }
     fetchData();
   }, [facilityId, !!uploadedData]);
+
+  if (isReset) return (
+  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
+    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
+    <p className="text-slate-400 font-medium">Upload data to see predictions</p>
+  </div>
+);
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ width: "100%", height: 400 }}>

@@ -11,12 +11,14 @@ const NO_DATA_PLACEHOLDER = (name) => (
   </div>
 );
 
-export default function KPI({ facilityId = "hospital", uploadedData = null }) {
+export default function KPI({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(true);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return NO_DATA_PLACEHOLDER(config.name);
+
+  
 
   useEffect(() => {
     if (uploadedData) { setLoading(false); return; }
@@ -38,7 +40,16 @@ export default function KPI({ facilityId = "hospital", uploadedData = null }) {
     fetchPrediction();
   }, [facilityId, !!uploadedData]);
 
+  
+
   const source = uploadedData || apiData;
+
+  if (isReset) return (
+  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
+    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
+    <p className="text-slate-400 font-medium">Upload data to see predictions</p>
+  </div>
+);
 
   const kpis = [
     { title: "Current Demand",   value: loading ? "Loading..." : `${source?.current_demand_kwh} kW` },

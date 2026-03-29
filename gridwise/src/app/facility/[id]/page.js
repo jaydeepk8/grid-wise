@@ -16,6 +16,7 @@ export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
+  const [isReset, setIsReset] = useState(true);
 
   if (!facility) {
     return (
@@ -61,13 +62,16 @@ export default function FacilityDetailPage() {
           
           <div className="flex items-center gap-3">
             {facility.hasData && (
-              <FileUpload onDataLoaded={(data) => setUploadedData(data)} />
+              <FileUpload onDataLoaded={(data) => {
+                setUploadedData(data);
+                setIsReset(false);
+              }} />
             )}
           </div>
         </div>
 
         
-        {uploadedData && (
+        {uploadedData && !isReset && (
           <div className="bg-[#4a6741] rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
@@ -75,8 +79,12 @@ export default function FacilityDetailPage() {
                 Showing predictions from your uploaded data
               </p>
             </div>
+
             <button
-              onClick={() => setUploadedData(null)}
+              onClick={() => {
+                setUploadedData(null);
+                setIsReset(true);
+              }}
               className="text-white/70 hover:text-white text-xs underline transition"
             >
               Reset to default
@@ -86,20 +94,20 @@ export default function FacilityDetailPage() {
 
         {/* KPI */}
         <section className="mb-10">
-          <KPI facilityId={id} uploadedData={uploadedData} />
+          <KPI facilityId={id} uploadedData={uploadedData} isReset={isReset} />
         </section>
 
         {/* Chart + Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
-            <EnergyChart facilityId={id} uploadedData={uploadedData} />
+            <EnergyChart facilityId={id} uploadedData={uploadedData} isReset={isReset} />
           </div>
-          <AIInsights facilityId={id} uploadedData={uploadedData} />
+          <AIInsights facilityId={id} uploadedData={uploadedData} isReset={isReset} />
         </section>
 
         {/* Recommendations */}
         <section className="mb-10">
-          <AIRecommendations facilityId={id} uploadedData={uploadedData} />
+          <AIRecommendations facilityId={id} uploadedData={uploadedData} isReset={isReset} />
         </section>
 
         {/* Download Report */}
@@ -114,13 +122,15 @@ export default function FacilityDetailPage() {
                     : "Download a full PDF report with predictions, insights and recommendations."}
                 </p>
               </div>
+
               <button
-                onClick={() => generateReport(reportFacility)}
+                onClick={() => generateReport(reportFacility, uploadedData)}
                 className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-sm">download</span>
                 Download Report
               </button>
+
             </div>
           </section>
         )}

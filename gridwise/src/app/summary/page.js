@@ -43,7 +43,7 @@ export default function SummaryPage() {
 
               {facility.hasData ? (
                 <button
-                  onClick={() => generateReport(facility)}
+                  onClick={() => generateReport(facility, null)}
                   className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300"
                 >
                   <span className="material-symbols-outlined text-sm">download</span>
