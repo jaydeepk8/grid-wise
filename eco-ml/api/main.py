@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 import io
 
-app = FastAPI(title="Eco1 Energy Prediction API")
+app = FastAPI(title="GridWise Energy Prediction API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,32 +24,41 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-model = None
-df = None
-df_ml = None
+models = {}
+datasets = {}
 
 @app.on_event("startup")
 def load_resources():
-    global model, df, df_ml
+    global models, datasets
 
-    print("Starting resource loading...")
-
-    model_path = BASE_DIR / "model" / "hospital_energy_rf.pkl"
-    data_path = BASE_DIR / "data"
-
+    print("Loading models and datasets...")
     print("BASE_DIR:", BASE_DIR)
-    print("Model exists:", model_path.exists())
-    print("Data files:", list(data_path.glob("*")))
 
-    model = joblib.load(model_path)
-    df = pd.read_csv(data_path / "hospital_hourly_energy.csv", parse_dates=["datetime"])
-    df_ml = pd.read_csv(data_path / "hospital_ml_ready.csv", parse_dates=["datetime"])
+    model_dir = BASE_DIR / "model"
+    data_dir = BASE_DIR / "data"
 
-    print("All resources loaded successfully")
+    models["hospital"] = joblib.load(model_dir / "hospital_energy_rf.pkl")
+    models["data-center"] = joblib.load(model_dir / "datacenter_energy_rf.pkl")
+    models["mnc"] = joblib.load(model_dir / "mnc_energy_rf.pkl")
+
+    for key, hourly_file, ml_file in [
+        ("hospital", "hospital_hourly_energy.csv", "hospital_ml_ready.csv"),
+        ("data-center", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
+        ("mnc", "mnc_hourly_energy.csv", "mnc_ml_ready.csv"),
+    ]:
+        hourly = pd.read_csv(data_dir / hourly_file, parse_dates=["datetime"])
+        ml = pd.read_csv(data_dir / ml_file, parse_dates=["datetime"])
+        datasets[key] = {
+            "hourly": hourly.sort_values("datetime").reset_index(drop=True),
+            "ml": ml.sort_values("datetime").reset_index(drop=True),
+        }
+
+    print("All models and datasets loaded successfully!")
 
 
 class PredictionInput(BaseModel):
     datetime: str
+    facility_type: Optional[str] = "hospital"
     prev_hour_energy: Optional[float] = None
     rolling_3h_avg: Optional[float] = None
     rolling_6h_avg: Optional[float] = None
@@ -59,8 +68,9 @@ def strip_tz(dt: datetime) -> datetime:
     return dt.replace(tzinfo=None) if dt.tzinfo else dt
 
 
-def get_real_inputs(dt: datetime):
+def get_real_inputs(dt: datetime, facility_type: str):
     dt = strip_tz(dt)
+    df_ml = datasets[facility_type]["ml"]
     match = df_ml[df_ml["datetime"] == dt]
     if not match.empty:
         row = match.iloc[0]
@@ -72,12 +82,13 @@ def get_real_inputs(dt: datetime):
     if not same_pattern.empty:
         avg = same_pattern[["prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]].mean()
         return float(avg["prev_hour_energy"]), float(avg["rolling_3h_avg"]), float(avg["rolling_6h_avg"])
-    last = df_ml.iloc[-1]
+    last = datasets[facility_type]["ml"].iloc[-1]
     return float(last["prev_hour_energy"]), float(last["rolling_3h_avg"]), float(last["rolling_6h_avg"])
 
 
-def get_real_chart_data(dt: datetime, num_hours: int = 12):
+def get_real_chart_data(dt: datetime, facility_type: str, num_hours: int = 12):
     dt = strip_tz(dt)
+    df = datasets[facility_type]["hourly"]
     past = df[df["datetime"] <= dt].tail(num_hours)
     if len(past) < num_hours:
         past = df.tail(num_hours)
@@ -98,7 +109,8 @@ def estimate_renewable_mix(hour):
     return 45
 
 
-def build_response(hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series):
+def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series):
+    model = models[facility_type]
     X = np.array([[hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg]])
     prediction = float(model.predict(X)[0])
     peak_risk = calculate_peak_risk(prediction, rolling_6h_avg)
@@ -144,6 +156,8 @@ def build_response(hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_a
 
 @app.post("/predict")
 def predict_energy(data: PredictionInput):
+    facility_type = data.facility_type if data.facility_type in models else "hospital"
+
     dt = datetime.fromisoformat(data.datetime.replace("Z", "+00:00"))
     dt_naive = strip_tz(dt)
     hour = dt_naive.hour
@@ -151,18 +165,18 @@ def predict_energy(data: PredictionInput):
     is_weekend = 1 if day_of_week >= 5 else 0
 
     if data.prev_hour_energy is None or data.rolling_3h_avg is None or data.rolling_6h_avg is None:
-        prev_hour_energy, rolling_3h_avg, rolling_6h_avg = get_real_inputs(dt_naive)
+        prev_hour_energy, rolling_3h_avg, rolling_6h_avg = get_real_inputs(dt_naive, facility_type)
     else:
         prev_hour_energy = data.prev_hour_energy
         rolling_3h_avg = data.rolling_3h_avg
         rolling_6h_avg = data.rolling_6h_avg
 
-    time_labels, actual_series = get_real_chart_data(dt_naive, num_hours=12)
-    return build_response(hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
+    time_labels, actual_series = get_real_chart_data(dt_naive, facility_type, num_hours=12)
+    return build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
 
 
 @app.post("/upload-predict")
-async def upload_and_predict(file: UploadFile = File(...)):
+async def upload_and_predict(file: UploadFile = File(...), facility_type: str = "hospital"):
     contents = await file.read()
 
     try:
@@ -181,8 +195,10 @@ async def upload_and_predict(file: UploadFile = File(...)):
     if len(uploaded_df) < 6:
         return {"error": "Minimum 6 rows of data required for prediction."}
 
-    uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
+    if facility_type not in models:
+        facility_type = "hospital"
 
+    uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
     last_row = uploaded_df.iloc[-1]
     dt = pd.to_datetime(last_row["datetime"])
     hour = dt.hour
@@ -201,7 +217,7 @@ async def upload_and_predict(file: UploadFile = File(...)):
     preview["datetime"] = preview["datetime"].astype(str)
     preview_data = preview.to_dict(orient="records")
 
-    result = build_response(hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
+    result = build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
     result["preview"] = preview_data
     result["total_rows"] = len(uploaded_df)
 
@@ -210,4 +226,4 @@ async def upload_and_predict(file: UploadFile = File(...)):
 
 @app.get("/")
 def root():
-    return {"status": "Eco1 API is running"}
+    return {"status": "GridWise API is running"}

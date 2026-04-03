@@ -14,15 +14,18 @@ export default function AIRecommendations({ facilityId = "hospital", uploadedDat
     </div>
   );
 
-  
   useEffect(() => {
+    if (isReset) { setRecommendations([]); return; }
     if (uploadedData) { setRecommendations(uploadedData.recommendations || []); return; }
     async function fetchData() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ datetime: new Date().toISOString() }),
+          body: JSON.stringify({
+            datetime: new Date().toISOString(),
+            facility_type: config.facilityType,
+          }),
         });
         const result = await res.json();
         setRecommendations(result.recommendations || []);
@@ -31,15 +34,14 @@ export default function AIRecommendations({ facilityId = "hospital", uploadedDat
       }
     }
     fetchData();
-  }, [facilityId, !!uploadedData]);
+  }, [facilityId, !!uploadedData, isReset]);
 
   if (isReset) return (
-  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
-    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
-    <p className="text-slate-400 font-medium">Upload data to see predictions</p>
-  </div>
-);
-
+    <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center min-h-[160px]">
+      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
+      <p className="text-slate-400 font-medium">Upload data to see predictions</p>
+    </div>
+  );
 
   const priorityColor = (priority) => {
     if (priority === "High") return "text-red-600";

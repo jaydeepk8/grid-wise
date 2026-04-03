@@ -18,16 +18,18 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
 
   if (!config.hasData) return NO_DATA_PLACEHOLDER(config.name);
 
-  
-
   useEffect(() => {
     if (uploadedData) { setLoading(false); return; }
+    if (isReset) { setLoading(false); return; }
     async function fetchPrediction() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ datetime: new Date().toISOString() }),
+          body: JSON.stringify({
+            datetime: new Date().toISOString(),
+            facility_type: config.facilityType,
+          }),
         });
         const data = await res.json();
         setApiData(data);
@@ -38,18 +40,16 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
       }
     }
     fetchPrediction();
-  }, [facilityId, !!uploadedData]);
-
-  
-
-  const source = uploadedData || apiData;
+  }, [facilityId, !!uploadedData, isReset]);
 
   if (isReset) return (
-  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
-    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
-    <p className="text-slate-400 font-medium">Upload data to see predictions</p>
-  </div>
-);
+    <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
+      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
+      <p className="text-slate-400 font-medium">Upload data to see predictions</p>
+    </div>
+  );
+
+  const source = uploadedData || apiData;
 
   const kpis = [
     { title: "Current Demand",   value: loading ? "Loading..." : `${source?.current_demand_kwh} kW` },

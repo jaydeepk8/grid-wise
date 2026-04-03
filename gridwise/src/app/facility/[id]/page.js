@@ -37,7 +37,7 @@ export default function FacilityDetailPage() {
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
       <div className="max-w-7xl mx-auto px-6">
 
-        
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
           <span>/</span>
@@ -46,7 +46,7 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
-        
+        {/* Header */}
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-10">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -59,27 +59,26 @@ export default function FacilityDetailPage() {
             </div>
           </div>
 
-          
-          <div className="flex items-center gap-3">
-            {facility.hasData && (
-              <FileUpload onDataLoaded={(data) => {
+          {facility.hasData && (
+            <FileUpload
+              facilityType={facility.facilityType}
+              onDataLoaded={(data) => {
                 setUploadedData(data);
                 setIsReset(false);
-              }} />
-            )}
-          </div>
+              }}
+            />
+          )}
         </div>
 
-        
+        {/* Uploaded data banner */}
         {uploadedData && !isReset && (
           <div className="bg-[#4a6741] rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
               <p className="text-white text-sm font-medium">
-                Showing predictions from your uploaded data
+                Showing predictions from your uploaded data ({uploadedData.total_rows} rows)
               </p>
             </div>
-
             <button
               onClick={() => {
                 setUploadedData(null);
@@ -111,7 +110,7 @@ export default function FacilityDetailPage() {
         </section>
 
         {/* Download Report */}
-        {facility.hasData && (
+        {facility.hasData && !isReset && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
               <div>
@@ -122,7 +121,6 @@ export default function FacilityDetailPage() {
                     : "Download a full PDF report with predictions, insights and recommendations."}
                 </p>
               </div>
-
               <button
                 onClick={() => generateReport(reportFacility, uploadedData)}
                 className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300 whitespace-nowrap"
@@ -130,7 +128,6 @@ export default function FacilityDetailPage() {
                 <span className="material-symbols-outlined text-sm">download</span>
                 Download Report
               </button>
-
             </div>
           </section>
         )}

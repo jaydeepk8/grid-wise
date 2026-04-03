@@ -2,10 +2,9 @@
 
 import { useState, useRef } from "react";
 
-export default function FileUpload({ onDataLoaded }) {
+export default function FileUpload({ onDataLoaded, facilityType = "hospital" }) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -13,15 +12,12 @@ export default function FileUpload({ onDataLoaded }) {
 
   function handleFile(selectedFile) {
     setError(null);
-    setPreview(null);
-
     const allowed = [".csv", ".xlsx", ".xls"];
     const ext = "." + selectedFile.name.split(".").pop().toLowerCase();
     if (!allowed.includes(ext)) {
       setError("Only CSV and Excel (.xlsx, .xls) files are supported.");
       return;
     }
-
     setFile(selectedFile);
   }
 
@@ -41,10 +37,10 @@ export default function FileUpload({ onDataLoaded }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-predict`, {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facilityType}`,
+        { method: "POST", body: formData }
+      );
 
       const data = await res.json();
 
@@ -54,11 +50,9 @@ export default function FileUpload({ onDataLoaded }) {
         return;
       }
 
-      setPreview(data.preview);
       onDataLoaded(data);
       setShowModal(false);
       setFile(null);
-      setPreview(null);
     } catch (err) {
       setError("Failed to connect to server. Make sure the backend is running.");
     } finally {
@@ -68,14 +62,12 @@ export default function FileUpload({ onDataLoaded }) {
 
   function resetModal() {
     setFile(null);
-    setPreview(null);
     setError(null);
     setShowModal(false);
   }
 
   return (
     <>
-      {/* Upload Button */}
       <button
         onClick={() => setShowModal(true)}
         className="flex items-center gap-2 border border-[#4a6741]/30 text-[#4a6741] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#4a6741] hover:text-white transition-all duration-300"
@@ -84,23 +76,20 @@ export default function FileUpload({ onDataLoaded }) {
         Upload Data
       </button>
 
-      {/* Modal Overlay */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8">
 
-            {/* Modal Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-serif text-[#2d3a2d]">Upload Energy Data</h2>
-                <p className="text-xs text-slate-400 mt-1">CSV or Excel</p>
+                <p className="text-xs text-slate-400 mt-1">CSV or Excel · Must have <code className="bg-slate-100 px-1 rounded">datetime</code> and <code className="bg-slate-100 px-1 rounded">energy_kwh</code> columns</p>
               </div>
               <button onClick={resetModal} className="text-slate-400 hover:text-slate-600 transition">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            {/* Drop Zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
@@ -131,7 +120,6 @@ export default function FileUpload({ onDataLoaded }) {
               />
             </div>
 
-            {/* Format hint */}
             <div className="bg-[#f9fbf9] rounded-xl px-4 py-3 mb-4">
               <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mb-2">Expected Format</p>
               <div className="font-mono text-xs text-slate-500 space-y-0.5">
@@ -142,7 +130,6 @@ export default function FileUpload({ onDataLoaded }) {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">
                 <span className="material-symbols-outlined text-red-400 text-sm">error</span>
@@ -150,12 +137,8 @@ export default function FileUpload({ onDataLoaded }) {
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3">
-              <button
-                onClick={resetModal}
-                className="flex-1 py-3 border border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition"
-              >
+              <button onClick={resetModal} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition">
                 Cancel
               </button>
               <button
@@ -170,7 +153,7 @@ export default function FileUpload({ onDataLoaded }) {
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-sm"></span>
+                    <span className="material-symbols-outlined text-sm">bolt</span>
                     Run Prediction
                   </>
                 )}

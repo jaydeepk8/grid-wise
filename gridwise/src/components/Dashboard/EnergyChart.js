@@ -15,22 +15,23 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
     </div>
   );
 
-  
-
   useEffect(() => {
+    if (isReset) { setChartData([]); return; }
     if (uploadedData) {
-    if (!uploadedData.chart) return; 
-    const { labels, actual, predicted } = uploadedData.chart;
-    setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
-    return;
+      if (!uploadedData.chart) return;
+      const { labels, actual, predicted } = uploadedData.chart;
+      setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
+      return;
     }
-
     async function fetchData() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ datetime: new Date().toISOString() }),
+          body: JSON.stringify({
+            datetime: new Date().toISOString(),
+            facility_type: config.facilityType,
+          }),
         });
         const result = await res.json();
         const { labels, actual, predicted } = result.chart;
@@ -40,14 +41,14 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
       }
     }
     fetchData();
-  }, [facilityId, !!uploadedData]);
+  }, [facilityId, !!uploadedData, isReset]);
 
   if (isReset) return (
-  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
-    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
-    <p className="text-slate-400 font-medium">Upload data to see predictions</p>
-  </div>
-);
+    <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
+      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
+      <p className="text-slate-400 font-medium">Upload data to see predictions</p>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ width: "100%", height: 400 }}>
@@ -59,7 +60,7 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
           <Tooltip />
           <Legend verticalAlign="top" height={36} />
           <Line type="monotone" dataKey="actual" name="Actual" stroke="#2E7D32" strokeWidth={3} dot={false} />
-          <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={3} dot={false} />
+          <Line type="monotone" dataKey="predicted" name="Predicted (ML)" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={3} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
