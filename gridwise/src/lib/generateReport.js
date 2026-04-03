@@ -82,13 +82,10 @@ export async function generateReport(facility, uploadedData = null) {
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
   doc.text(
-    uploadedData
-      ? "Report based on uploaded data + next-hour ML prediction."
-      : "Report covers last 12 hours of actual consumption + next-hour prediction.",
-    14, y
-  );
+  "Report covers last 12 hours of actual consumption + next-hour prediction.",
+  14, y
+);
   y += 10;
-
   y = addDivider(y);
   y = addSectionTitle("Energy Summary", y);
 
