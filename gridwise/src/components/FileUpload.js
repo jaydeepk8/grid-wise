@@ -83,7 +83,7 @@ export default function FileUpload({ onDataLoaded, facilityType = "hospital" }) 
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-serif text-[#2d3a2d]">Upload Energy Data</h2>
-                <p className="text-xs text-slate-400 mt-1">CSV or Excel · Must have <code className="bg-slate-100 px-1 rounded">datetime</code> and <code className="bg-slate-100 px-1 rounded">energy_kwh</code> columns</p>
+                <p className="text-xs text-slate-400 mt-1">CSV or Excel</p>
               </div>
               <button onClick={resetModal} className="text-slate-400 hover:text-slate-600 transition">
                 <span className="material-symbols-outlined">close</span>
