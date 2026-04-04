@@ -8,6 +8,7 @@ import KPI from "@/components/Dashboard/KPI";
 import EnergyChart from "@/components/Dashboard/EnergyChart";
 import AIInsights from "@/components/Dashboard/AIInsights";
 import AIRecommendations from "@/components/Dashboard/AIRecommendations";
+import ModelAccuracy from "@/components/Dashboard/ModelAccuracy";
 import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
@@ -31,7 +32,12 @@ export default function FacilityDetailPage() {
     );
   }
 
-  const reportFacility = { name: facility.name, category: facility.category, status: facility.status };
+  const reportFacility = {
+    name: facility.name,
+    category: facility.category,
+    status: facility.status,
+    facilityType: facility.facilityType,
+  };
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -70,6 +76,11 @@ export default function FacilityDetailPage() {
           )}
         </div>
 
+        {/* Model Accuracy — always visible */}
+        {facility.hasData && (
+          <ModelAccuracy facilityId={id} />
+        )}
+
         {/* Uploaded data banner */}
         {uploadedData && !isReset && (
           <div className="bg-[#4a6741] rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
@@ -80,10 +91,7 @@ export default function FacilityDetailPage() {
               </p>
             </div>
             <button
-              onClick={() => {
-                setUploadedData(null);
-                setIsReset(true);
-              }}
+              onClick={() => { setUploadedData(null); setIsReset(true); }}
               className="text-white/70 hover:text-white text-xs underline transition"
             >
               Reset to default

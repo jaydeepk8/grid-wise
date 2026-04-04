@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import io
 
 app = FastAPI(title="GridWise Energy Prediction API")
@@ -26,26 +27,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 models = {}
 datasets = {}
+accuracy_cache = {}
 
 @app.on_event("startup")
 def load_resources():
-    global models, datasets
+    global models, datasets, accuracy_cache
 
     print("Loading models and datasets...")
-    print("BASE_DIR:", BASE_DIR)
-
     model_dir = BASE_DIR / "model"
     data_dir = BASE_DIR / "data"
 
-    models["hospital"] = joblib.load(model_dir / "hospital_energy_rf.pkl")
-    models["data-center"] = joblib.load(model_dir / "datacenter_energy_rf.pkl")
-    models["mnc"] = joblib.load(model_dir / "mnc_energy_rf.pkl")
+    facility_files = {
+        "hospital": ("hospital_energy_rf.pkl", "hospital_hourly_energy.csv", "hospital_ml_ready.csv"),
+        "data-center": ("datacenter_energy_rf.pkl", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
+        "mnc": ("mnc_energy_rf.pkl", "mnc_hourly_energy.csv", "mnc_ml_ready.csv"),
+    }
 
-    for key, hourly_file, ml_file in [
-        ("hospital", "hospital_hourly_energy.csv", "hospital_ml_ready.csv"),
-        ("data-center", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
-        ("mnc", "mnc_hourly_energy.csv", "mnc_ml_ready.csv"),
-    ]:
+    for key, (model_file, hourly_file, ml_file) in facility_files.items():
+        models[key] = joblib.load(model_dir / model_file)
         hourly = pd.read_csv(data_dir / hourly_file, parse_dates=["datetime"])
         ml = pd.read_csv(data_dir / ml_file, parse_dates=["datetime"])
         datasets[key] = {
@@ -53,7 +52,23 @@ def load_resources():
             "ml": ml.sort_values("datetime").reset_index(drop=True),
         }
 
-    print("All models and datasets loaded successfully!")
+        features = ["hour", "day_of_week", "is_weekend", "prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]
+        df_ml = datasets[key]["ml"]
+        X = df_ml[features]
+        y = df_ml["target_next_hour"]
+        split = int(len(df_ml) * 0.8)
+        X_test = X.iloc[split:]
+        y_test = y.iloc[split:]
+        y_pred = models[key].predict(X_test)
+
+        accuracy_cache[key] = {
+            "r2": round(float(r2_score(y_test, y_pred)), 4),
+            "mae": round(float(mean_absolute_error(y_test, y_pred)), 2),
+            "rmse": round(float(np.sqrt(mean_squared_error(y_test, y_pred))), 2),
+            "accuracy_percent": round(float(r2_score(y_test, y_pred)) * 100, 2),
+        }
+
+    print("All resources loaded successfully!")
 
 
 class PredictionInput(BaseModel):
@@ -82,7 +97,7 @@ def get_real_inputs(dt: datetime, facility_type: str):
     if not same_pattern.empty:
         avg = same_pattern[["prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]].mean()
         return float(avg["prev_hour_energy"]), float(avg["rolling_3h_avg"]), float(avg["rolling_6h_avg"])
-    last = datasets[facility_type]["ml"].iloc[-1]
+    last = df_ml.iloc[-1]
     return float(last["prev_hour_energy"]), float(last["rolling_3h_avg"]), float(last["rolling_6h_avg"])
 
 
@@ -157,7 +172,6 @@ def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energ
 @app.post("/predict")
 def predict_energy(data: PredictionInput):
     facility_type = data.facility_type if data.facility_type in models else "hospital"
-
     dt = datetime.fromisoformat(data.datetime.replace("Z", "+00:00"))
     dt_naive = strip_tz(dt)
     hour = dt_naive.hour
@@ -173,6 +187,13 @@ def predict_energy(data: PredictionInput):
 
     time_labels, actual_series = get_real_chart_data(dt_naive, facility_type, num_hours=12)
     return build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
+
+
+@app.get("/accuracy/{facility_type}")
+def get_accuracy(facility_type: str):
+    if facility_type not in accuracy_cache:
+        return {"error": "Facility not found"}
+    return accuracy_cache[facility_type]
 
 
 @app.post("/upload-predict")
@@ -215,10 +236,9 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
 
     preview = uploaded_df.head(5)[["datetime", "energy_kwh"]].copy()
     preview["datetime"] = preview["datetime"].astype(str)
-    preview_data = preview.to_dict(orient="records")
 
     result = build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
-    result["preview"] = preview_data
+    result["preview"] = preview.to_dict(orient="records")
     result["total_rows"] = len(uploaded_df)
 
     return result

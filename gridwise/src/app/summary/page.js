@@ -4,9 +4,30 @@ import Footer from "@/components/Footer";
 import { generateReport } from "@/lib/generateReport";
 
 const facilities = [
-  { id: "hospital", name: "General Hospital", category: "Essential Service", status: "Optimal", hasData: true },
-  { id: "data-center", name: "Data Center", category: "Critical Infrastructure", status: "High Demand", hasData: false },
-  { id: "mnc", name: "MNC", category: "Corporate Excellence", status: "Efficient", hasData: false },
+  {
+    id: "hospital",
+    name: "General Hospital",
+    category: "Essential Service",
+    status: "Optimal",
+    facilityType: "hospital",
+    hasData: true,
+  },
+  {
+    id: "data-center",
+    name: "Data Center",
+    category: "Critical Infrastructure",
+    status: "High Demand",
+    facilityType: "data-center",
+    hasData: true,
+  },
+  {
+    id: "mnc",
+    name: "MNC",
+    category: "Corporate Excellence",
+    status: "Efficient",
+    facilityType: "mnc",
+    hasData: true,
+  },
 ];
 
 export default function SummaryPage() {
@@ -41,19 +62,13 @@ export default function SummaryPage() {
                 </p>
               </div>
 
-              {facility.hasData ? (
-                <button
-                  onClick={() => generateReport(facility, null)}
-                  className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300"
-                >
-                  <span className="material-symbols-outlined text-sm">download</span>
-                  Download Report
-                </button>
-              ) : (
-                <span className="text-xs text-slate-300 uppercase tracking-widest font-semibold">
-                  No Data Yet
-                </span>
-              )}
+              <button
+                onClick={() => generateReport(facility, null)}
+                className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                Download Report
+              </button>
             </div>
           ))}
         </div>
