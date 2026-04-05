@@ -43,7 +43,6 @@ export default function FacilityDetailPage() {
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
           <span>/</span>
@@ -76,8 +75,8 @@ export default function FacilityDetailPage() {
           )}
         </div>
 
-        {/* Model Accuracy — always visible */}
-        {facility.hasData && (
+        {/* Model Accuracy*/}
+        {facility.hasData && !isReset && (
           <ModelAccuracy facilityId={id} />
         )}
 
