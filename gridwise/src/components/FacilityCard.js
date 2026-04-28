@@ -48,23 +48,6 @@ export default function FacilityCard({
               {name}
             </h3>
           </div>
-
-          
-          <div className="relative w-12 h-12">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#f1f4f1" strokeWidth="3" />
-              <circle
-                cx="18" cy="18" r="16" fill="none"
-                stroke="#4a6741" strokeWidth="3"
-                strokeDasharray="100"
-                strokeDashoffset={100 - score}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#4a6741]">
-              {score}
-            </div>
-          </div>
         </div>
 
        
