@@ -10,8 +10,6 @@ const facilities = [
     id: "hospital",
     type: "Hospitals",
     imageSrc: "/facilities/hospital.png",
-    status: "Optimal",
-    statusColor: "text-[#4a6741]",
     category: "Essential Service",
     name: "Hospital",
     score: 0,

@@ -2,15 +2,10 @@ export const facilityConfig = {
   hospital: {
     name: "Hospital",
     category: "Essential Service",
-    status: "Optimal",
-    statusColor: "text-[#4a6741]",
     icon: "local_hospital",
     description: "GridWise monitors real-time consumption and predicts next-hour demand to ensure zero downtime.",
     hasData: true,
     facilityType: "hospital",
-    dailyLoad: "~452 kWh avg",
-    source: "Solar / Grid",
-    accentColor: "#4a6741",
   },
 
   "data-center": {
