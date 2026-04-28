@@ -60,7 +60,7 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
           <Tooltip />
           <Legend verticalAlign="top" height={36} />
           <Line type="monotone" dataKey="actual" name="Actual" stroke="#2E7D32" strokeWidth={3} dot={false} />
-          <Line type="monotone" dataKey="predicted" name="Predicted (ML)" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={3} dot={false} />
+          <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={3} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
