@@ -11,8 +11,6 @@ export default function FacilityCard({
   category,
   name,
   score,
-  dailyLoad,
-  source,
 }) {
   const router = useRouter();
 
