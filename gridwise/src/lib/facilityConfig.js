@@ -11,28 +11,18 @@ export const facilityConfig = {
   "data-center": {
     name: "Data Center",
     category: "Data Services",
-    status: "High Demand",
-    statusColor: "text-orange-600",
     icon: "dns",
     description: "GridWise predicts load spikes and recommends optimal energy sourcing strategies.",
     hasData: true,
     facilityType: "data-center",
-    dailyLoad: "~1200 kWh avg",
-    source: "Grid 100%",
-    accentColor: "#ea580c",
   },
 
   mnc: {
     name: "MNC",
     category: "MNCs",
-    status: "Efficient",
-    statusColor: "text-[#4a6741]",
     icon: "corporate_fare",
     description: "Multinational corporations benefit from GridWise's renewable energy optimization, reducing carbon footprint while maintaining operational efficiency.",
     hasData: true,
     facilityType: "mnc",
-    dailyLoad: "~800 kWh avg",
-    source: "Wind Power",
-    accentColor: "#0369a1",
   },
 };
