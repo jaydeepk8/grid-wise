@@ -72,12 +72,8 @@ export default function FacilityCard({
        
         <div className="grid grid-cols-2 gap-4 mb-6 text-sm border-t border-[#e2e8e2]/60 pt-4">
           <div>
-            <p className="text-slate-400 text-[10px] uppercase font-bold">Daily Load</p>
-            <p className="font-medium text-[#2d3a2d]">{dailyLoad}</p>
           </div>
           <div>
-            <p className="text-slate-400 text-[10px] uppercase font-bold">Main Source</p>
-            <p className="font-medium text-[#2d3a2d]">{source}</p>
           </div>
         </div>
 
