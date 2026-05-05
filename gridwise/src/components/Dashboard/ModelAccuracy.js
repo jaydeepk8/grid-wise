@@ -24,14 +24,15 @@ export default function ModelAccuracy({ facilityId = "hospital" }) {
 
   if (!accuracy) return null;
 
-  const getBg    = (r2) => r2 >= 0.9 ? "bg-[#4a6741]/10 text-[#4a6741]" : r2 >= 0.75 ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-600";
+  const getBg    = (r2) => "bg-white/15 text-white";
   const getLabel = (r2) => r2 >= 0.9 ? "Excellent" : r2 >= 0.75 ? "Good" : "Fair";
+  const textColor = "text-white";
 
   return (
     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${getBg(accuracy.r2)}`}>
       <span className="material-symbols-outlined text-base">model_training</span>
       <span className="font-bold">{accuracy.accuracy_percent}%</span>
-      <span className="text-xs opacity-70">{getLabel(accuracy.r2)}</span>
+      <span className="text-xs text-white/70">{getLabel(accuracy.r2)}</span>
     </div>
   );
 }

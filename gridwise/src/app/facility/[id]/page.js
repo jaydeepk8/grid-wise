@@ -65,13 +65,10 @@ export default function FacilityDetailPage() {
               </div>
             </div>
             {facility.hasData && (
-              <div className="flex items-center gap-3">
-                <ModelAccuracy facilityId={id} />
-                <FileUpload
-                  facilityType={facility.facilityType}
-                  onDataLoaded={(data) => { setUploadedData(data); setIsReset(false); }}
-                />
-              </div>
+              <FileUpload
+                facilityType={facility.facilityType}
+                onDataLoaded={(data) => { setUploadedData(data); setIsReset(false); }}
+              />
             )}
           </div>
           {uploadedData && !isReset && (
@@ -80,9 +77,12 @@ export default function FacilityDetailPage() {
                 <span className="material-symbols-outlined text-white text-sm">check_circle</span>
                 <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
               </div>
-              <button onClick={() => { setUploadedData(null); setIsReset(true); }} className="text-white/70 hover:text-white text-xs underline transition">
-                Reset to default
-              </button>
+              <div className="flex items-center gap-3">
+                <ModelAccuracy facilityId={id} />
+                <button onClick={() => { setUploadedData(null); setIsReset(true); }} className="text-white/70 hover:text-white text-xs underline transition">
+                  Reset to default
+                </button>
+              </div>
             </div>
           )}
         </div>
