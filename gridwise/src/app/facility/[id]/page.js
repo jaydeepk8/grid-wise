@@ -65,20 +65,18 @@ export default function FacilityDetailPage() {
           </div>
 
           {facility.hasData && (
-            <FileUpload
-              facilityType={facility.facilityType}
-              onDataLoaded={(data) => {
-                setUploadedData(data);
-                setIsReset(false);
-              }}
-            />
+            <div className="flex items-center gap-3">
+              <ModelAccuracy facilityId={id} />
+              <FileUpload
+                facilityType={facility.facilityType}
+                onDataLoaded={(data) => {
+                  setUploadedData(data);
+                  setIsReset(false);
+                }}
+              />
+            </div>
           )}
         </div>
-
-        {/* Model Accuracy*/}
-        {facility.hasData && !isReset && (
-          <ModelAccuracy facilityId={id} />
-        )}
 
         {/* Uploaded data banner */}
         {uploadedData && !isReset && (
