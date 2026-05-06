@@ -52,40 +52,40 @@ export default function FacilityDetailPage() {
         </div>
 
         {/* Header */}
-        <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col gap-4 mb-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#4a6741] text-3xl">{facility.icon}</span>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1">{facility.category}</p>
-                <h1 className="text-3xl font-serif text-[#2d3a2d]">{facility.name}</h1>
-                <p className="text-slate-500 text-sm mt-1 max-w-lg">{facility.description}</p>
-              </div>
+        <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-6">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-[#4a6741] text-3xl">{facility.icon}</span>
             </div>
-            {facility.hasData && (
-              <FileUpload
-                facilityType={facility.facilityType}
-                onDataLoaded={(data) => { setUploadedData(data); setIsReset(false); }}
-              />
-            )}
+            <div>
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1">{facility.category}</p>
+              <h1 className="text-3xl font-serif text-[#2d3a2d]">{facility.name}</h1>
+              <p className="text-slate-500 text-sm mt-1 max-w-lg">{facility.description}</p>
+            </div>
           </div>
-          {uploadedData && !isReset && (
-            <div className="flex items-center justify-between bg-[#4a6741] rounded-xl px-5 py-3">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-white text-sm">check_circle</span>
-                <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <ModelAccuracy facilityId={id} />
-                <button onClick={() => { setUploadedData(null); setIsReset(true); }} className="text-white/70 hover:text-white text-xs underline transition">
-                  Reset to default
-                </button>
-              </div>
-            </div>
+          {facility.hasData && (
+            <FileUpload
+              facilityType={facility.facilityType}
+              onDataLoaded={(data) => { setUploadedData(data); setIsReset(false); }}
+            />
           )}
         </div>
+
+        {/* Uploaded data banner */}
+        {uploadedData && !isReset && (
+          <div className="flex items-center justify-between bg-[#4a6741] rounded-2xl px-6 py-4 mb-10">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-white text-sm">check_circle</span>
+              <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <ModelAccuracy facilityId={id} />
+              <button onClick={() => { setUploadedData(null); setIsReset(true); }} className="text-white/70 hover:text-white text-xs underline transition">
+                Reset to default
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* KPI */}
         <section className="mb-10">
