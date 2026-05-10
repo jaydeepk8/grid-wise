@@ -1,17 +1,15 @@
-"use client";
+﻿"use client";
 import { facilityConfig } from "@/lib/facilityConfig";
 
 export default function AIRecommendations({ data = null, facilityId = "hospital" }) {
   const config = facilityConfig[facilityId];
 
-  if (!config.hasData) return (
+  if (!config.hasData || !data?.recommendations) return (
     <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center min-h-[160px]">
-      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">recommend</span>
-      <p className="text-slate-400 font-medium">No recommendations yet</p>
+      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">recommend</span>
+      <p className="text-slate-300 font-medium">Upload data to see recommendations</p>
     </div>
   );
-
-  if (!data?.recommendations) return null;
 
   const priorityColor = (p) =>
     p === "High" ? "text-red-600 border-red-200" : p === "Medium" ? "text-yellow-600 border-yellow-200" : "text-green-600 border-green-200";

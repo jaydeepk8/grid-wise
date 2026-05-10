@@ -4,14 +4,12 @@ import { facilityConfig } from "@/lib/facilityConfig";
 export default function AIInsights({ data = null, facilityId = "hospital" }) {
   const config = facilityConfig[facilityId];
 
-  if (!config.hasData) return (
+  if (!config.hasData || !data?.insights) return (
     <div className="bg-white rounded-2xl p-6 shadow-sm h-full flex flex-col items-center justify-center text-center">
-      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">lightbulb</span>
-      <p className="text-slate-400 font-medium">No insights yet</p>
+      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">lightbulb</span>
+      <p className="text-slate-300 font-medium">Upload data to see insights</p>
     </div>
   );
-
-  if (!data?.insights) return null;
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm h-full">

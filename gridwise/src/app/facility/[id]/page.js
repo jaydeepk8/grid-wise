@@ -110,38 +110,23 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* No data state - API down, nothing to show */}
-        {!loading && !activeData && !error && (
-          <div className="bg-white rounded-2xl p-12 shadow-sm flex flex-col items-center justify-center text-center mb-10">
-            <span className="material-symbols-outlined text-5xl text-slate-300 mb-4">upload_file</span>
-            <p className="text-slate-500 font-medium mb-1">Upload your CSV to see predictions</p>
-            <p className="text-slate-400 text-sm">Or wait for the backend to wake up (~30 seconds)</p>
-          </div>
-        )}
-
         {/* KPI */}
-        {(loading || activeData) && (
-          <section className="mb-10">
-            {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
-          </section>
-        )}
+        <section className="mb-10">
+          {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+        </section>
 
         {/* Chart + Insights */}
-        {(loading || activeData) && (
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-            <div className="lg:col-span-2">
-              {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
-            </div>
-            {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
-          </section>
-        )}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          <div className="lg:col-span-2">
+            {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+          </div>
+          {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
+        </section>
 
         {/* Recommendations */}
-        {(loading || activeData) && (
-          <section className="mb-10">
-            {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
-          </section>
-        )}
+        <section className="mb-10">
+          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+        </section>
 
         {/* Download Report */}
         {facility.hasData && activeData && (

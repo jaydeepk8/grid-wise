@@ -1,24 +1,21 @@
-"use client";
+﻿"use client";
 import { facilityConfig } from "@/lib/facilityConfig";
-
-const NO_DATA_PLACEHOLDER = (name) => (
-  <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
-    <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">hourglass_empty</span>
-    <p className="text-slate-400 font-medium">No data available yet</p>
-    <p className="text-slate-300 text-sm mt-1">Data for {name} will appear here once connected.</p>
-  </div>
-);
 
 export default function KPI({ data = null, facilityId = "hospital" }) {
   const config = facilityConfig[facilityId];
-  if (!config.hasData) return NO_DATA_PLACEHOLDER(config.name);
-  if (!data) return null;
+
+  if (!config.hasData) return (
+    <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
+      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">hourglass_empty</span>
+      <p className="text-slate-400 font-medium">No data available for {config.name}</p>
+    </div>
+  );
 
   const kpis = [
-    { title: "Current Demand",   value: `${data.current_demand_kwh} kW` },
-    { title: "Predicted Demand", value: `${data.predicted_next_hour_kwh} kW` },
-    { title: "Peak Load Risk",   value: data.peak_load_risk },
-    { title: "Renewable Mix",    value: `${data.renewable_mix_percent}%` },
+    { title: "Current Demand",   value: data ? `${data.current_demand_kwh} kW`         : null },
+    { title: "Predicted Demand", value: data ? `${data.predicted_next_hour_kwh} kW`    : null },
+    { title: "Peak Load Risk",   value: data ? data.peak_load_risk                      : null },
+    { title: "Renewable Mix",    value: data ? `${data.renewable_mix_percent}%`         : null },
   ];
 
   return (
@@ -26,7 +23,10 @@ export default function KPI({ data = null, facilityId = "hospital" }) {
       {kpis.map((kpi, i) => (
         <div key={i} className="bg-white rounded-2xl p-6 shadow-sm">
           <p className="text-xs uppercase tracking-wide text-gray-400">{kpi.title}</p>
-          <h2 className="text-2xl font-semibold mt-2 text-gray-900">{kpi.value}</h2>
+          {kpi.value
+            ? <h2 className="text-2xl font-semibold mt-2 text-gray-900">{kpi.value}</h2>
+            : <div className="mt-3 h-7 w-20 bg-slate-100 rounded-lg" />
+          }
         </div>
       ))}
     </div>

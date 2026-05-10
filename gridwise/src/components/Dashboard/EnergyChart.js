@@ -1,18 +1,16 @@
-"use client";
+﻿"use client";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
 
 export default function EnergyChart({ data = null, facilityId = "hospital" }) {
   const config = facilityConfig[facilityId];
 
-  if (!config.hasData) return (
+  if (!config.hasData || !data?.chart) return (
     <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[320px]">
-      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">bar_chart</span>
-      <p className="text-slate-400 font-medium">No chart data available yet</p>
+      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">bar_chart</span>
+      <p className="text-slate-300 font-medium">Upload data to see chart</p>
     </div>
   );
-
-  if (!data?.chart) return null;
 
   const { labels, actual, predicted } = data.chart;
   const chartData = labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] }));
