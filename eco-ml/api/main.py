@@ -208,10 +208,11 @@ def predict_energy(data: PredictionInput):
         rolling_6h_avg   = data.rolling_6h_avg
 
     time_labels, actual_series = get_chart_data(dt_naive, facility, num_hours=12)
+    current_hour = datetime.now().hour
     logger.info("Predict | facility=%s hour=%02d dow=%d", facility, hour, day_of_week)
     return build_response(facility, hour, day_of_week, is_weekend,
                           prev_hour_energy, rolling_3h_avg, rolling_6h_avg,
-                          time_labels, actual_series)
+                          time_labels, actual_series, current_hour)
 
 
 @app.get("/accuracy/{facility_type}")
