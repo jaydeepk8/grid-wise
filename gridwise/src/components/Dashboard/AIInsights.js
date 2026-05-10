@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
+import { InsightsSkeleton } from "@/components/Dashboard/Skeleton";
 
 export default function AIInsights({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [insights, setInsights] = useState([]);

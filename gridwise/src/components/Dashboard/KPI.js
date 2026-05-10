@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
+import { KPISkeleton } from "@/components/Dashboard/Skeleton";
 
 const NO_DATA_PLACEHOLDER = (name) => (
   <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
@@ -51,11 +52,13 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
 
   const source = uploadedData || apiData;
 
+  if (loading) return <KPISkeleton />;
+
   const kpis = [
-    { title: "Current Demand",   value: loading ? "Loading..." : `${source?.current_demand_kwh} kW` },
-    { title: "Predicted Demand", value: loading ? "Loading..." : `${source?.predicted_next_hour_kwh} kW` },
-    { title: "Peak Load Risk",   value: loading ? "Loading..." : source?.peak_load_risk },
-    { title: "Renewable Mix",    value: loading ? "Loading..." : `${source?.renewable_mix_percent}%` },
+    { title: "Current Demand",   value: `${source?.current_demand_kwh} kW` },
+    { title: "Predicted Demand", value: `${source?.predicted_next_hour_kwh} kW` },
+    { title: "Peak Load Risk",   value: source?.peak_load_risk },
+    { title: "Renewable Mix",    value: `${source?.renewable_mix_percent}%` },
   ];
 
   return (
@@ -63,9 +66,7 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
       {kpis.map((kpi, i) => (
         <div key={i} className="bg-white rounded-2xl p-6 shadow-sm">
           <p className="text-xs uppercase tracking-wide text-gray-400">{kpi.title}</p>
-          <h2 className={`text-2xl font-semibold mt-2 transition-colors duration-300 ${loading ? "text-gray-300" : "text-gray-900"}`}>
-            {kpi.value}
-          </h2>
+          <h2 className="text-2xl font-semibold mt-2 text-gray-900">{kpi.value}</h2>
         </div>
       ))}
     </div>

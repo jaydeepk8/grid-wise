@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, Label } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
+import { ChartSkeleton } from "@/components/Dashboard/Skeleton";
 
 export default function EnergyChart({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
@@ -16,7 +18,8 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
   );
 
   useEffect(() => {
-    if (isReset) { setChartData([]); return; }
+    setLoading(true);
+    if (isReset) { setChartData([]); setLoading(false); setLoading(false); return; }
     if (uploadedData) {
       if (!uploadedData.chart) return;
       const { labels, actual, predicted } = uploadedData.chart;

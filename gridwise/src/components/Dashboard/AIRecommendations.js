@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
+import { RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
 
 export default function AIRecommendations({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [recommendations, setRecommendations] = useState([]);
