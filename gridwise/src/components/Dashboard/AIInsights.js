@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 import { facilityConfig } from "@/lib/facilityConfig";
 
 export default function AIInsights({ data = null, facilityId = "hospital" }) {
@@ -19,7 +19,7 @@ export default function AIInsights({ data = null, facilityId = "hospital" }) {
       <ul className="space-y-3 text-black font-normal text-sm">
         {data.insights.map((point, index) => (
           <li key={index} className="flex items-start gap-2">
-            <span className="text-green-600 font-bold shrink-0">•</span>
+            <span className="text-green-600 font-bold shrink-0">&#8226;</span>
             {point}
           </li>
         ))}
