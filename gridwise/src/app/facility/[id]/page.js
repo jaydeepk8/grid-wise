@@ -103,13 +103,6 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* Error banner - only when API down and no uploaded data */}
-        {error && !uploadedData && (
-          <div className="mb-6">
-            <ErrorState message="Backend is starting up (may take ~30s on free tier). Upload your CSV above to see predictions immediately." />
-          </div>
-        )}
-
         {/* KPI */}
         <section className="mb-10">
           {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
