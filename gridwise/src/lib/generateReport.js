@@ -17,6 +17,14 @@ export async function generateReport(facility, uploadedData = null) {
     data = await res.json();
   }
 
+  // Fetch model accuracy
+  let accuracyText = "N/A";
+  try {
+    const accRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accuracy/${facility.facilityType || "hospital"}`);
+    const accData = await accRes.json();
+    accuracyText = `${accData.accuracy_percent}% (MAE: ${accData.mae} kWh, MAPE: ${accData.mape}%)`;
+  } catch (_) {}
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -98,6 +106,7 @@ export async function generateReport(facility, uploadedData = null) {
     ["Predicted Next-Hour Demand", `${data.predicted_next_hour_kwh} kWh`],
     ["Peak Load Risk", data.peak_load_risk],
     ["Renewable Mix", `${data.renewable_mix_percent}%`],
+    ["Model Accuracy", accuracyText],
   ];
 
   kpis.forEach(([label, value]) => {

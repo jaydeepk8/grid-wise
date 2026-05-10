@@ -2,18 +2,25 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 
 export const metadata = {
-  title: "GridWise",
-  description: "Next hour energy prediction for hospitals, data centers & MNCs",
+  title: { default: "GridWise", template: "%s | GridWise" },
+  description: "AI-powered next-hour energy demand prediction for hospitals, data centers and MNCs. Built with Random Forest ML, FastAPI and Next.js.",
+  keywords: ["energy prediction", "AI", "machine learning", "smart grid", "hospital energy", "data center energy"],
+  authors: [{ name: "GridWise" }],
+  openGraph: {
+    title: "GridWise - AI Energy Prediction",
+    description: "Predict next-hour energy demand for hospitals, data centers and MNCs using AI.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-          rel="stylesheet"
-        />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#4a6741" />
       </head>
       <body className="bg-[#f1f4f1]">
         <Navbar />

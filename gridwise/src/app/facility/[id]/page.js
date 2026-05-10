@@ -34,7 +34,7 @@ export default function FacilityDetailPage() {
       body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType }),
     })
       .then((r) => r.json())
-      .then((data) => setDefaultData(data))
+      .then((data) => { setDefaultData(data); document.title = `${facility.name} | GridWise`; })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [id]);

@@ -1,0 +1,12 @@
+{
+  "name": "GridWise - Energy Prediction",
+  "short_name": "GridWise",
+  "description": "AI-powered next-hour energy demand prediction for hospitals, data centers and MNCs.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f4f1",
+  "theme_color": "#4a6741",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
