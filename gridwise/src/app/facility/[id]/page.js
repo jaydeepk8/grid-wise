@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import KPI from "@/components/Dashboard/KPI";
 import EnergyChart from "@/components/Dashboard/EnergyChart";
@@ -12,12 +12,32 @@ import ModelAccuracy from "@/components/Dashboard/ModelAccuracy";
 import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
+import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
-  const [isReset, setIsReset] = useState(true);
+  const [isReset, setIsReset] = useState(false);
+  const [defaultData, setDefaultData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // Single API call for the whole page
+  useEffect(() => {
+    if (!facility?.hasData) { setLoading(false); return; }
+    setLoading(true);
+    setError(false);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType }),
+    })
+      .then((r) => r.json())
+      .then((data) => setDefaultData(data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   if (!facility) {
     return (
@@ -32,12 +52,8 @@ export default function FacilityDetailPage() {
     );
   }
 
-  const reportFacility = {
-    name: facility.name,
-    category: facility.category,
-    status: facility.status,
-    facilityType: facility.facilityType,
-  };
+  const reportFacility = { name: facility.name, category: facility.category, status: facility.status, facilityType: facility.facilityType };
+  const activeData = uploadedData || defaultData;
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -80,45 +96,46 @@ export default function FacilityDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setIsReset(true); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button onClick={() => { setUploadedData(null); setIsReset(false); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
           </div>
         )}
 
+        {/* Error */}
+        {error && <div className="mb-10"><ErrorState message="Failed to connect to prediction API. Check if the backend is running." /></div>}
+
         {/* KPI */}
         <section className="mb-10">
-          <KPI facilityId={id} uploadedData={uploadedData} isReset={isReset} />
+          {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
         </section>
 
         {/* Chart + Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
-            <EnergyChart facilityId={id} uploadedData={uploadedData} isReset={isReset} />
+            {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
           </div>
-          <AIInsights facilityId={id} uploadedData={uploadedData} isReset={isReset} />
+          {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
 
         {/* Recommendations */}
         <section className="mb-10">
-          <AIRecommendations facilityId={id} uploadedData={uploadedData} isReset={isReset} />
+          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
         </section>
 
         {/* Download Report */}
-        {facility.hasData && !isReset && (
+        {facility.hasData && activeData && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
               <div>
                 <h3 className="text-lg font-serif text-[#2d3a2d] mb-1">Energy Prediction Report</h3>
                 <p className="text-sm text-slate-400">
-                  {uploadedData
-                    ? "Download PDF report based on your uploaded data."
-                    : "Download a full PDF report with predictions, insights and recommendations."}
+                  {uploadedData ? "Download PDF report based on your uploaded data." : "Download a full PDF report with predictions, insights and recommendations."}
                 </p>
               </div>
               <button
-                onClick={() => generateReport(reportFacility, uploadedData)}
+                onClick={() => generateReport(reportFacility, activeData)}
                 className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-sm">download</span>

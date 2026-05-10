@@ -1,59 +1,21 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, Label } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
-import { ChartSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
-export default function EnergyChart({ facilityId = "hospital", uploadedData = null, isReset = false }) {
-  const [chartData, setChartData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function EnergyChart({ data = null, facilityId = "hospital" }) {
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
-    <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
+    <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[320px]">
       <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">bar_chart</span>
       <p className="text-slate-400 font-medium">No chart data available yet</p>
     </div>
   );
 
-  useEffect(() => {
-    setLoading(true);
-    if (isReset) { setChartData([]); setLoading(false); setLoading(false); return; }
-    if (uploadedData) {
-      if (!uploadedData.chart) return;
-      const { labels, actual, predicted } = uploadedData.chart;
-      setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
-      return;
-    }
-    async function fetchData() {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            datetime: new Date().toISOString(),
-            facility_type: config.facilityType,
-          }),
-        });
-        const result = await res.json();
-        const { labels, actual, predicted } = result.chart;
-        setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
-      } catch (err) {
-        console.error("Chart fetch error:", err);
-        setError(true);
-      }
-    }
-    fetchData();
-  }, [facilityId, !!uploadedData, isReset]);
+  if (!data?.chart) return null;
 
-  if (isReset) return (
-    <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
-      <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">upload_file</span>
-      <p className="text-slate-400 font-medium">Upload data to see predictions</p>
-    </div>
-  );
+  const { labels, actual, predicted } = data.chart;
+  const chartData = labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] }));
 
   return (
     <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm w-full" style={{ height: 320 }}>
