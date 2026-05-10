@@ -58,10 +58,10 @@ export default function AIRecommendations({ facilityId = "hospital", uploadedDat
           <p className="text-slate-400 text-sm">Loading recommendations...</p>
         ) : (
           recommendations.map((rec, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-black">{rec.title}</h4>
-                <span className={`font-bold ${priorityColor(rec.priority)}`}>{rec.priority}</span>
+            <div key={index} className="border rounded-xl p-3 md:p-4">
+              <div className="flex flex-wrap justify-between items-start gap-1 mb-2">
+                <h4 className="font-semibold text-black text-sm md:text-base">{rec.title}</h4>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${priorityColor(rec.priority)}`}>{rec.priority}</span>
               </div>
               <p className="text-sm text-gray-700">{rec.impact}</p>
             </div>

@@ -41,7 +41,7 @@ export default function FacilityDetailPage() {
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-3 md:px-6">
 
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-8">
           <Link href="/" className="hover:text-[#4a6741] transition-colors">Home</Link>
@@ -52,7 +52,7 @@ export default function FacilityDetailPage() {
         </div>
 
         {/* Header */}
-        <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8 mb-6">
+        <div className="bg-[#eef3ec] rounded-3xl px-4 md:px-10 py-6 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-8 mb-6">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
               <span className="material-symbols-outlined text-[#4a6741] text-3xl">{facility.icon}</span>
@@ -73,7 +73,7 @@ export default function FacilityDetailPage() {
 
         {/* Uploaded data banner */}
         {uploadedData && !isReset && (
-          <div className="flex items-center justify-between bg-[#4a6741] rounded-2xl px-6 py-4 mb-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-10">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
               <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>

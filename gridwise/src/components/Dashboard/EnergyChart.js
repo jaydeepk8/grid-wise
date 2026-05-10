@@ -54,16 +54,16 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
   );
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ width: "100%", height: 400 }}>
-      <ResponsiveContainer>
-        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+    <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm w-full" style={{ height: 320 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time"><Label value="Time (Hours)" offset={-10} position="insideBottom" /></XAxis>
-          <YAxis><Label value="Energy (kWh)" angle={-90} position="insideLeft" style={{ textAnchor: "middle" }} /></YAxis>
+          <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} width={45} />
           <Tooltip />
-          <Legend verticalAlign="top" height={36} />
-          <Line type="monotone" dataKey="actual" name="Actual" stroke="#2E7D32" strokeWidth={3} dot={false} />
-          <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={3} dot={false} />
+          <Legend verticalAlign="top" height={30} />
+          <Line type="monotone" dataKey="actual" name="Actual" stroke="#2E7D32" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#1976D2" strokeDasharray="6 4" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
