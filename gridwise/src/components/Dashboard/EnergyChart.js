@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, Label } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
-import { ChartSkeleton } from "@/components/Dashboard/Skeleton";
+import { ChartSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
 export default function EnergyChart({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
@@ -39,8 +40,9 @@ export default function EnergyChart({ facilityId = "hospital", uploadedData = nu
         const result = await res.json();
         const { labels, actual, predicted } = result.chart;
         setChartData(labels.map((label, i) => ({ time: label, actual: actual[i], predicted: predicted[i] })));
-      } catch (error) {
-        console.error("Chart fetch error:", error);
+      } catch (err) {
+        console.error("Chart fetch error:", err);
+        setError(true);
       }
     }
     fetchData();

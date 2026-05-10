@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
-import { InsightsSkeleton } from "@/components/Dashboard/Skeleton";
+import { InsightsSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
 export default function AIInsights({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [insights, setInsights] = useState([]);
+  const [error, setError] = useState(false);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
@@ -30,8 +31,9 @@ export default function AIInsights({ facilityId = "hospital", uploadedData = nul
         });
         const result = await res.json();
         setInsights(result.insights || []);
-      } catch (error) {
-        console.error("AIInsights fetch error:", error);
+      } catch (err) {
+        console.error("AIInsights fetch error:", err);
+        setError(true);
       }
     }
     fetchInsights();

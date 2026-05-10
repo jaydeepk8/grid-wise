@@ -65,3 +65,16 @@ export function RecommendationsSkeleton() {
     </div>
   );
 }
+
+// Error state
+export function ErrorState({ message = "Could not load data. Please try again later." }) {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-center gap-4">
+      <span className="material-symbols-outlined text-red-400 text-3xl shrink-0">wifi_off</span>
+      <div>
+        <p className="font-semibold text-red-600 text-sm">API Unavailable</p>
+        <p className="text-red-400 text-xs mt-0.5">{message}</p>
+      </div>
+    </div>
+  );
+}

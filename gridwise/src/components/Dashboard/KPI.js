@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
-import { KPISkeleton } from "@/components/Dashboard/Skeleton";
+import { KPISkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
 const NO_DATA_PLACEHOLDER = (name) => (
   <div className="bg-white rounded-2xl p-8 shadow-sm col-span-4 flex flex-col items-center justify-center text-center min-h-[120px]">
@@ -15,6 +15,7 @@ const NO_DATA_PLACEHOLDER = (name) => (
 export default function KPI({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return NO_DATA_PLACEHOLDER(config.name);
@@ -36,6 +37,7 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
         setApiData(data);
       } catch (error) {
         console.error("Prediction API error:", error);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -53,6 +55,7 @@ export default function KPI({ facilityId = "hospital", uploadedData = null, isRe
   const source = uploadedData || apiData;
 
   if (loading) return <KPISkeleton />;
+  if (error) return <div className="col-span-4"><ErrorState message="Failed to connect to prediction API. Check if the backend is running." /></div>;
 
   const kpis = [
     { title: "Current Demand",   value: `${source?.current_demand_kwh} kW` },

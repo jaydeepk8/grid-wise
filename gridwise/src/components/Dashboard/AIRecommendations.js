@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { facilityConfig } from "@/lib/facilityConfig";
-import { RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
+import { RecommendationsSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
 
 export default function AIRecommendations({ facilityId = "hospital", uploadedData = null, isReset = false }) {
   const [recommendations, setRecommendations] = useState([]);
+  const [error, setError] = useState(false);
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
@@ -30,8 +31,9 @@ export default function AIRecommendations({ facilityId = "hospital", uploadedDat
         });
         const result = await res.json();
         setRecommendations(result.recommendations || []);
-      } catch (error) {
-        console.error("AIRecommendations fetch error:", error);
+      } catch (err) {
+        console.error("AIRecommendations fetch error:", err);
+        setError(true);
       }
     }
     fetchData();
