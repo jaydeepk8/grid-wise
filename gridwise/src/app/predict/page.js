@@ -10,7 +10,6 @@ export default function PredictPage() {
   const [form, setForm] = useState({
     facility_type: "Hospital",
     current_load: "",
-    temperature: "",
     hour: new Date().getHours(),
     day_of_week: new Date().getDay(),
   });
@@ -34,7 +33,6 @@ export default function PredictPage() {
         body: JSON.stringify({
           ...form,
           current_load: parseFloat(form.current_load),
-          temperature: parseFloat(form.temperature),
           hour: parseInt(form.hour),
           day_of_week: parseInt(form.day_of_week),
         }),
@@ -116,21 +114,6 @@ export default function PredictPage() {
             </div>
 
            
-            <div>
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
-                Temperature (°C)
-              </label>
-              <input
-                type="number"
-                name="temperature"
-                value={form.temperature}
-                onChange={handleChange}
-                placeholder="e.g. 28"
-                className="w-full border border-[#4a6741]/20 rounded-xl px-4 py-3 text-sm text-[#2d3a2d] bg-[#f9fbf9] focus:outline-none focus:ring-2 focus:ring-[#4a6741]/30"
-              />
-            </div>
-
-           
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
@@ -166,7 +149,7 @@ export default function PredictPage() {
           
           <button
             onClick={handlePredict}
-            disabled={loading || !form.current_load || !form.temperature}
+            disabled={loading || !form.current_load}
             className="mt-8 w-full flex items-center justify-center gap-2 bg-[#4a6741] text-white px-6 py-3.5 rounded-full text-sm font-medium hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? (
