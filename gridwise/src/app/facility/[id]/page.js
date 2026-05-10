@@ -12,13 +12,13 @@ import ModelAccuracy from "@/components/Dashboard/ModelAccuracy";
 import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
-import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton, ErrorState } from "@/components/Dashboard/Skeleton";
+import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
-  const [isReset, setIsReset] = useState(false);
+
   const [defaultData, setDefaultData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -96,7 +96,7 @@ export default function FacilityDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setIsReset(false); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button onClick={() => { setUploadedData(null); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>

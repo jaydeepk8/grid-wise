@@ -1,56 +1,43 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import Footer from "@/components/Footer";
-import KPI from "@/components/Dashboard/KPI";
-import EnergyChart from "@/components/Dashboard/EnergyChart";
-import RenewableMix from "@/components/Dashboard/RenewableMix";
-import FacilityStatus from "@/components/Dashboard/FacilityStatus";
-import AIInsights from "@/components/Dashboard/AIInsights";
-import AIRecommendations from "@/components/Dashboard/AIRecommendations";
+import { facilityConfig } from "@/lib/facilityConfig";
 
 export default function InsightsPage() {
+  const facilities = Object.entries(facilityConfig);
+
   return (
-    <div className="bg-[#f6f8f4] min-h-screen flex flex-col">
+    <div className="bg-[#f1f4f1] min-h-screen flex flex-col pt-32">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 w-full flex-1">
 
-      <main className="flex-1 bg-[#f6f8f4]">
+        <div className="bg-[#eef3ec] rounded-3xl px-6 md:px-10 py-8 mb-10">
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">Analytics</p>
+          <h1 className="text-4xl font-serif text-[#2d3a2d] mb-2">AI Insights</h1>
+          <p className="text-slate-500 max-w-xl">
+            Select a facility to view its AI-generated energy insights, predictions and recommendations.
+          </p>
+        </div>
 
-        <section className="max-w-7xl mx-auto px-6 pt-32">
-          <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-            <div>
-              <h1 className="text-4xl font-serif text-[#2d3a2d] mb-2">
-                Executive Overview
-              </h1>
-              <p className="text-[#6b7280] max-w-xl">
-                Monitoring essential services with a commitment to sustainable
-                growth and ecological balance.
-              </p>
-            </div>
-            <button className="flex items-center gap-2 bg-[#1f2933] text-white px-6 py-3 rounded-full text-sm font-medium shadow hover:opacity-90 transition">
-              <span className="material-symbols-outlined text-sm">
-                file_upload
-              </span>
-              Import Data
-            </button>
-          </div>
-        </section>
+        <div className="flex flex-col gap-4 mb-16">
+          {facilities.map(([id, facility]) => (
+            <Link key={id} href={`/facility/${id}`}
+              className="bg-white rounded-2xl px-6 md:px-10 py-6 flex items-center justify-between shadow-sm hover:shadow-md hover:border-[#4a6741]/20 border border-transparent transition-all group">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#4a6741]/10 rounded-xl flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[#4a6741] text-2xl">{facility.icon}</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-0.5">{facility.category}</p>
+                  <h2 className="text-xl font-serif text-[#2d3a2d]">{facility.name}</h2>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-slate-300 group-hover:text-[#4a6741] transition-colors">arrow_forward</span>
+            </Link>
+          ))}
+        </div>
 
-        <section className="max-w-7xl mx-auto px-6 mt-12">
-          <KPI />
-        </section>
-
-        <section className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <EnergyChart />
-          </div>
-          <AIInsights />
-        </section>
-
-        <section className="max-w-7xl mx-auto px-6 mt-12">
-          <AIRecommendations />
-        </section>
-
-      </main>
-
+      </div>
       <Footer />
     </div>
   );
