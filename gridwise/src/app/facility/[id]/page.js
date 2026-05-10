@@ -103,8 +103,8 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* Error */}
-        {error && <div className="mb-10"><ErrorState message="Failed to connect to prediction API. Check if the backend is running." /></div>}
+        {/* Error - only show if no uploaded data to fall back on */}
+        {error && !uploadedData && <div className="mb-10"><ErrorState message="Failed to connect to prediction API. Check if the backend is running." /></div>}
 
         {/* KPI */}
         <section className="mb-10">
