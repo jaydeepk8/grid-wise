@@ -82,13 +82,13 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); setIsReset(false); }}
+              onDataLoaded={(data) => { setUploadedData(data); }}
             />
           )}
         </div>
 
         {/* Uploaded data banner */}
-        {uploadedData && !isReset && (
+        {uploadedData && (
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-10">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
