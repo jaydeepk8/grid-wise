@@ -14,6 +14,7 @@ import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
 import ForecastChart from "@/components/Dashboard/ForecastChart";
+import AnomalyDetector from "@/components/Dashboard/AnomalyDetector";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -124,9 +125,12 @@ export default function FacilityDetailPage() {
           </section>
         )}
 
-        {/* Recommendations */}
-        <section className="mb-10">
-          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+        {/* Anomaly Detection + Recommendations side by side */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          <div className="lg:col-span-2">
+            {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+          </div>
+          {facility.hasData && <AnomalyDetector facilityId={id} />}
         </section>
 
         {/* Download Report */}

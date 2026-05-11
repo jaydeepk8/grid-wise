@@ -316,3 +316,33 @@ def forecast_24h(payload: PredictRequest):
         "avg_predicted": round(float(np.mean(predicted)), 1),
     }
 
+
+@app.post("/anomaly")
+def detect_anomalies(file: UploadFile = File(...), facility: str = Form(...)):
+    """Detect anomalous energy readings in uploaded CSV using Isolation Forest."""
+    if facility not in models:
+        raise HTTPException(status_code=404, detail=f"Unknown facility: {facility}")
+    try:
+        contents = file.file.read()
+        uploaded_df = pd.read_csv(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {e}")
+
+    if "energy_kwh" not in uploaded_df.columns:
+        raise HTTPException(status_code=400, detail="CSV must have energy_kwh column")
+
+    values = uploaded_df[["energy_kwh"]].dropna()
+    clf = IsolationForest(contamination=0.05, random_state=42)
+    preds = clf.fit_predict(values)
+
+    anomaly_indices = [int(i) for i, p in enumerate(preds) if p == -1]
+    anomaly_values  = [round(float(values.iloc[i]["energy_kwh"]), 2) for i in anomaly_indices]
+
+    return {
+        "total_rows": len(values),
+        "anomaly_count": len(anomaly_indices),
+        "anomaly_percent": round(len(anomaly_indices) / len(values) * 100, 1),
+        "anomalies": [{"index": idx, "value": val} for idx, val in zip(anomaly_indices, anomaly_values)],
+        "status": "High" if len(anomaly_indices) > len(values) * 0.08 else "Normal",
+    }
+
