@@ -22,7 +22,9 @@ export default function AnomalyDetector({ facilityId = "hospital" }) {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/anomaly`, {
         method: "POST", body: form,
       });
+      if (!res.ok) { setError(true); return; }
       const data = await res.json();
+      if (!data?.anomalies) { setError(true); return; }
       setResult(data);
     } catch {
       setError(true);
@@ -92,7 +94,7 @@ export default function AnomalyDetector({ facilityId = "hospital" }) {
           </div>
 
           {/* Top anomalies list */}
-          {result.anomalies.length > 0 && (
+          {result.anomalies?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
                 Top Anomalies (row → value)
