@@ -346,3 +346,53 @@ def detect_anomalies(file: UploadFile = File(...), facility: str = Form(...)):
         "status": "High" if len(anomaly_indices) > len(values) * 0.08 else "Normal",
     }
 
+
+FEATURE_LABELS = {
+    "hour":             "Hour of Day",
+    "day_of_week":      "Day of Week",
+    "is_weekend":       "Is Weekend",
+    "prev_hour_energy": "Previous Hour Energy",
+    "rolling_3h_avg":   "3-Hour Rolling Avg",
+    "rolling_6h_avg":   "6-Hour Rolling Avg",
+}
+
+@app.post("/explain")
+def explain_prediction(payload: PredictRequest):
+    """Return SHAP feature importance values for a single prediction."""
+    facility = payload.facility_type
+    if facility not in models:
+        raise HTTPException(status_code=404, detail=f"Unknown facility: {facility}")
+
+    dt_naive = payload.datetime.replace(tzinfo=None)
+    df = datasets[facility]
+
+    hour        = dt_naive.hour
+    day_of_week = dt_naive.weekday()
+    is_weekend  = int(day_of_week >= 5)
+    prev_energy = float(df["target_next_hour"].iloc[-1])
+    rolling_3h  = float(df["rolling_3h_avg"].iloc[-1])
+    rolling_6h  = float(df["rolling_6h_avg"].iloc[-1])
+
+    X = np.array([[hour, day_of_week, is_weekend, prev_energy, rolling_3h, rolling_6h]])
+
+    explainer   = shap.TreeExplainer(models[facility])
+    shap_values = explainer.shap_values(X)[0]
+    feature_names = ["hour", "day_of_week", "is_weekend", "prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]
+
+    importance = [
+        {
+            "feature": FEATURE_LABELS[name],
+            "shap_value": round(float(v), 3),
+            "abs_value": round(abs(float(v)), 3),
+        }
+        for name, v in zip(feature_names, shap_values)
+    ]
+    importance.sort(key=lambda x: x["abs_value"], reverse=True)
+
+    return {
+        "facility": facility,
+        "prediction": round(float(models[facility].predict(X)[0]), 1),
+        "base_value": round(float(explainer.expected_value), 1),
+        "importance": importance,
+    }
+

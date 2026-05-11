@@ -15,6 +15,7 @@ import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
 import ForecastChart from "@/components/Dashboard/ForecastChart";
 import AnomalyDetector from "@/components/Dashboard/AnomalyDetector";
+import SHAPChart from "@/components/Dashboard/SHAPChart";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -122,6 +123,13 @@ export default function FacilityDetailPage() {
         {facility.hasData && (
           <section className="mb-10">
             <ForecastChart facilityId={id} />
+          </section>
+        )}
+
+        {/* SHAP Explainability */}
+        {facility.hasData && (
+          <section className="mb-10">
+            <SHAPChart facilityId={id} />
           </section>
         )}
 
