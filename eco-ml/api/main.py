@@ -1,6 +1,6 @@
 import io
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -268,3 +268,51 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     result["preview"]    = preview.to_dict(orient="records")
     result["total_rows"] = len(uploaded_df)
     return result
+
+@app.post("/forecast")
+def forecast_24h(payload: PredictRequest):
+    """Predict next 24 hours iteratively using the XGBoost model."""
+    facility = payload.facility_type
+    if facility not in models:
+        raise HTTPException(status_code=404, detail=f"Unknown facility: {facility}")
+
+    dt_naive = payload.datetime.replace(tzinfo=None)
+    df = datasets[facility]
+
+    # Get last known row as seed
+    last_row = df.iloc[-1]
+    prev_energy   = float(last_row["target_next_hour"])
+    rolling_3h    = float(last_row["rolling_3h_avg"])
+    rolling_6h    = float(last_row["rolling_6h_avg"])
+    recent_values = list(df["target_next_hour"].iloc[-6:])
+
+    labels, predicted = [], []
+    current_dt = dt_naive
+
+    for i in range(24):
+        current_dt = current_dt + timedelta(hours=1)
+        h   = current_dt.hour
+        dow = current_dt.weekday()
+        is_we = int(dow >= 5)
+
+        X = np.array([[h, dow, is_we, prev_energy, rolling_3h, rolling_6h]])
+        pred = float(models[facility].predict(X)[0])
+
+        labels.append(current_dt.strftime("%H:%M"))
+        predicted.append(round(pred, 1))
+
+        # Update rolling features for next iteration
+        recent_values.append(pred)
+        rolling_3h = round(float(np.mean(recent_values[-3:])), 2)
+        rolling_6h = round(float(np.mean(recent_values[-6:])), 2)
+        prev_energy = pred
+
+    return {
+        "facility": facility,
+        "forecast_labels": labels,
+        "forecast_values": predicted,
+        "peak_hour": labels[int(np.argmax(predicted))],
+        "peak_value": max(predicted),
+        "avg_predicted": round(float(np.mean(predicted)), 1),
+    }
+

@@ -13,6 +13,7 @@ import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
+import ForecastChart from "@/components/Dashboard/ForecastChart";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -115,6 +116,13 @@ export default function FacilityDetailPage() {
           </div>
           {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
+
+        {/* 24-Hour Forecast */}
+        {facility.hasData && (
+          <section className="mb-10">
+            <ForecastChart facilityId={id} />
+          </section>
+        )}
 
         {/* Recommendations */}
         <section className="mb-10">
