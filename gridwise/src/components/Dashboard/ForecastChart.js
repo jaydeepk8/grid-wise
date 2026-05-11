@@ -34,7 +34,7 @@ export default function ForecastChart({ facilityId = "hospital" }) {
 
   if (loading) return <ChartSkeleton />;
 
-  if (!data) return (
+  if (!data?.forecast_labels) return (
     <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[320px]">
       <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">timeline</span>
       <p className="text-slate-300 font-medium">Forecast unavailable</p>

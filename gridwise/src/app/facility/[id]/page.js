@@ -36,8 +36,8 @@ export default function FacilityDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType }),
     })
-      .then((r) => r.json())
-      .then((data) => { setDefaultData(data); document.title = `${facility.name} | GridWise`; })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.current_demand_kwh) { setDefaultData(data); document.title = `${facility.name} | GridWise`; } })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [id]);

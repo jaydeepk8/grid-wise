@@ -47,7 +47,7 @@ export default function SHAPChart({ facilityId = "hospital" }) {
     raw: d.shap_value,
   }));
 
-  const max = Math.max(...chartData.map((d) => d.value));
+  const max = Math.max(...chartData.map((d) => d.value)) || 1;
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm">
