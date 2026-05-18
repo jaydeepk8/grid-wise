@@ -13,7 +13,6 @@ import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
-import SHAPChart from "@/components/Dashboard/SHAPChart";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -116,13 +115,6 @@ export default function FacilityDetailPage() {
           </div>
           {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
-
-        {/* SHAP Explainability */}
-        {facility.hasData && (
-          <section className="mb-10">
-            <SHAPChart facilityId={id} active={!!uploadedData} />
-          </section>
-        )}
 
         {/* Recommendations */}
         <section className="mb-10">
