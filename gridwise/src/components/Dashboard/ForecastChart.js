@@ -6,8 +6,9 @@ import { facilityConfig } from "@/lib/facilityConfig";
 import { ChartSkeleton } from "@/components/Dashboard/Skeleton";
 
 export default function ForecastChart({ facilityId = "hospital", active = false, hours = 24 }) {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [data, setData]         = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [retries, setRetries]   = useState(0);
   const config = facilityConfig[facilityId];
 
   const fetchForecast = useCallback(() => {
@@ -20,28 +21,47 @@ export default function ForecastChart({ facilityId = "hospital", active = false,
       body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: config.facilityType, hours }),
     })
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.forecast_labels) setData(d); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (d?.forecast_labels) {
+          setData(d);
+          setLoading(false);
+        } else {
+          // Retry up to 3 times with 4s delay
+          setRetries((r) => {
+            if (r < 3) setTimeout(() => fetchForecast(), 4000);
+            else setLoading(false);
+            return r + 1;
+          });
+        }
+      })
+      .catch(() => {
+        setRetries((r) => {
+          if (r < 3) setTimeout(() => fetchForecast(), 4000);
+          else setLoading(false);
+          return r + 1;
+        });
+      });
   }, [config, hours]);
 
   useEffect(() => {
-    if (active) fetchForecast();
+    if (active) { setRetries(0); fetchForecast(); }
   }, [active, fetchForecast]);
 
-  if (!active) return (
+  if (loading) return (
     <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[320px]">
-      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">timeline</span>
-      <p className="text-slate-300 font-medium">Upload your data to unlock forecast</p>
+      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3 animate-spin">autorenew</span>
+      <p className="text-slate-400 font-medium text-sm">Generating forecast{retries > 0 ? ` (retry ${retries}/3)` : "..."}</p>
     </div>
   );
-
-  if (loading) return <ChartSkeleton />;
 
   if (!data) return (
     <div className="bg-white rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center h-[320px]">
       <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">cloud_off</span>
-      <p className="text-slate-300 font-medium">Forecast unavailable — try again shortly</p>
+      <p className="text-slate-300 font-medium">Forecast unavailable</p>
+      <button onClick={() => { setRetries(0); fetchForecast(); }}
+        className="mt-4 text-xs text-[#4a6741] border border-[#4a6741]/30 px-4 py-2 rounded-lg hover:bg-[#eef3ec] transition">
+        Try again
+      </button>
     </div>
   );
 
@@ -54,7 +74,7 @@ export default function ForecastChart({ facilityId = "hospital", active = false,
 
   return (
     <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{label} Forecast</h3>
           <p className="text-xs text-slate-400 mt-0.5">XGBoost iterative energy demand prediction</p>
@@ -87,10 +107,8 @@ export default function ForecastChart({ facilityId = "hospital", active = false,
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="time" tick={{ fontSize: 10 }} interval={hours === 168 ? 23 : hours === 24 ? 3 : 1} />
             <YAxis tick={{ fontSize: 10 }} width={45} />
-            <Tooltip
-              formatter={(v) => [`${v} kW`, "Predicted"]}
-              contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: 12 }}
-            />
+            <Tooltip formatter={(v) => [`${v} kW`, "Predicted"]}
+              contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: 12 }} />
             <ReferenceLine y={data.avg_predicted} stroke="#94a3b8" strokeDasharray="4 4"
               label={{ value: "Avg", position: "right", fontSize: 10, fill: "#94a3b8" }} />
             <Area type="monotone" dataKey="demand" stroke="#4a6741" strokeWidth={2.5}

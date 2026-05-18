@@ -25,13 +25,13 @@ const TABS = [
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
-  const [activeTab, setActiveTab]       = useState(0);
-  const [uploadedData, setUploadedData] = useState(null);
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [activeTab, setActiveTab]           = useState(0);
+  const [uploadedData, setUploadedData]     = useState(null);
+  const [uploadedFile, setUploadedFile]     = useState(null);
   const [liveRefreshing, setLiveRefreshing] = useState(false);
-  const liveIntervalRef = useRef(null);
-  const [defaultData, setDefaultData]   = useState(null);
-  const [loading, setLoading]           = useState(true);
+  const liveIntervalRef                     = useRef(null);
+  const [defaultData, setDefaultData]       = useState(null);
+  const [loading, setLoading]               = useState(true);
 
   useEffect(() => {
     if (!facility?.hasData) { setLoading(false); return; }
@@ -112,7 +112,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); }}
+              onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); }}
               onFileReady={(f) => setUploadedFile(f)}
             />
           )}
@@ -131,24 +131,22 @@ export default function FacilityDetailPage() {
                 {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
               </div>
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setUploadedFile(null); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
           </div>
         )}
 
-        {/* Time horizon tabs */}
-        {facility.hasData && (
+        {/* Time horizon tabs — only after upload */}
+        {uploadedData && facility.hasData && (
           <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
             {TABS.map((tab, i) => (
               <button
                 key={i}
                 onClick={() => setActiveTab(i)}
                 className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
-                  activeTab === i
-                    ? "bg-[#4a6741] text-white shadow"
-                    : "text-slate-400 hover:text-[#4a6741]"
+                  activeTab === i ? "bg-[#4a6741] text-white shadow" : "text-slate-400 hover:text-[#4a6741]"
                 }`}
               >
                 {tab.label}
@@ -175,10 +173,14 @@ export default function FacilityDetailPage() {
           </>
         )}
 
-        {/* Forecast views */}
-        {activeTab > 0 && facility.hasData && (
+        {/* Forecast views — only render when tab is active and data uploaded */}
+        {activeTab > 0 && uploadedData && facility.hasData && (
           <section className="mb-10">
-            <ForecastChart facilityId={id} active={!!uploadedData} hours={TABS[activeTab].hours} />
+            <ForecastChart
+              facilityId={id}
+              active={true}
+              hours={TABS[activeTab].hours}
+            />
           </section>
         )}
 
