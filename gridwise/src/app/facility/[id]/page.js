@@ -20,6 +20,7 @@ export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [defaultData, setDefaultData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +85,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); }}
+              onDataLoaded={(data) => { setUploadedData(data); setRefreshTrigger(t => t + 1); }}
             />
           )}
         </div>
@@ -121,7 +122,7 @@ export default function FacilityDetailPage() {
         {/* 24-Hour Forecast */}
         {facility.hasData && (
           <section className="mb-10">
-            <ForecastChart facilityId={id} />
+            <ForecastChart facilityId={id} refreshTrigger={refreshTrigger} />
           </section>
         )}
 
