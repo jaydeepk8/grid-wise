@@ -19,7 +19,6 @@ export default function FacilityDetailPage() {
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [liveMode, setLiveMode] = useState(false);
   const [liveRefreshing, setLiveRefreshing] = useState(false);
   const liveIntervalRef = useRef(null);
 
@@ -60,13 +59,12 @@ export default function FacilityDetailPage() {
   }, [uploadedFile, facility]);
 
   useEffect(() => {
-    if (liveMode && uploadedFile) {
+    clearInterval(liveIntervalRef.current);
+    if (uploadedFile) {
       liveIntervalRef.current = setInterval(refreshLive, 30000);
-    } else {
-      clearInterval(liveIntervalRef.current);
     }
     return () => clearInterval(liveIntervalRef.current);
-  }, [liveMode, uploadedFile, refreshLive]);
+  }, [uploadedFile, refreshLive]);
 
   if (!facility) {
     return (
@@ -111,7 +109,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); setLiveMode(false); }}
+              onDataLoaded={(data) => { setUploadedData(data); }}
               onFileReady={(f) => setUploadedFile(f)}
             />
           )}
@@ -126,14 +124,11 @@ export default function FacilityDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <ModelAccuracy facilityId={id} />
-              <button
-                onClick={() => setLiveMode(l => !l)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${liveMode ? "bg-white text-[#4a6741]" : "bg-white/20 text-white hover:bg-white/30"}`}
-              >
-                <span className={`w-2 h-2 rounded-full ${liveMode ? "bg-[#4a6741] animate-pulse" : "bg-white/60"}`} />
-                {liveRefreshing ? "Refreshing..." : liveMode ? "Live" : "Go Live"}
-              </button>
-              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setLiveMode(false); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <div className="flex items-center gap-1.5 text-xs text-white/80">
+                <span className={`w-2 h-2 rounded-full bg-white ${liveRefreshing ? "animate-ping" : "animate-pulse"}`} />
+                {liveRefreshing ? "Refreshing..." : "Live — updates every 30s"}
+              </div>
+              <button onClick={() => { setUploadedData(null); setUploadedFile(null); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
