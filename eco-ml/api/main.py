@@ -1,4 +1,4 @@
-import io
+﻿import io
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -12,11 +12,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# ── Logging ────────────────────────────────────────────────────────────────────
+# â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── App ────────────────────────────────────────────────────────────────────────
+# â”€â”€ App â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app = FastAPI(title="GridWise Energy Prediction API", version="2.0.0")
 
 app.add_middleware(
@@ -161,7 +161,7 @@ def build_response(facility, hour, day_of_week, is_weekend,
                                  "impact": f"Forecast indicates {round(demand_change, 2)}% rise in next-hour demand."})
     if renewable_mix < 50:
         recommendations.append({"title": "Increase Renewable Dispatch", "priority": "Medium",
-                                 "impact": f"Renewable mix at {renewable_mix}% — increasing grid dependency."})
+                                 "impact": f"Renewable mix at {renewable_mix}% â€” increasing grid dependency."})
     elif renewable_mix > 75:
         recommendations.append({"title": "Maximize Solar Utilization", "priority": "Low",
                                  "impact": f"High renewable penetration ({renewable_mix}%) allows sustainability optimization."})
@@ -269,8 +269,13 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     result["total_rows"] = len(uploaded_df)
     return result
 
+class ForecastRequest(BaseModel):
+    datetime: datetime
+    facility_type: str
+    hours: int = 24
+
 @app.post("/forecast")
-def forecast_24h(payload: PredictRequest):
+def forecast_24h(payload: ForecastRequest):
     """Predict next 24 hours iteratively using the XGBoost model."""
     facility = payload.facility_type
     if facility not in models:
@@ -289,7 +294,8 @@ def forecast_24h(payload: PredictRequest):
     labels, predicted = [], []
     current_dt = dt_naive
 
-    for i in range(24):
+    hours = min(payload.hours, 168)  # cap at 7 days
+    for i in range(hours):
         current_dt = current_dt + timedelta(hours=1)
         h   = current_dt.hour
         dow = current_dt.weekday()
