@@ -13,14 +13,12 @@ import FileUpload from "@/components/FileUpload";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
-import ForecastChart from "@/components/Dashboard/ForecastChart";
 import SHAPChart from "@/components/Dashboard/SHAPChart";
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [defaultData, setDefaultData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +83,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); setRefreshTrigger(t => t + 1); }}
+              onDataLoaded={(data) => { setUploadedData(data); }}
             />
           )}
         </div>
@@ -118,13 +116,6 @@ export default function FacilityDetailPage() {
           </div>
           {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
-
-        {/* 24-Hour Forecast */}
-        {facility.hasData && (
-          <section className="mb-10">
-            <ForecastChart facilityId={id} refreshTrigger={refreshTrigger} />
-          </section>
-        )}
 
         {/* SHAP Explainability */}
         {facility.hasData && (
