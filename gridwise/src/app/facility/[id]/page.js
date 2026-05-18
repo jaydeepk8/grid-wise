@@ -10,7 +10,6 @@ import AIInsights from "@/components/Dashboard/AIInsights";
 import AIRecommendations from "@/components/Dashboard/AIRecommendations";
 import ModelAccuracy from "@/components/Dashboard/ModelAccuracy";
 import FileUpload from "@/components/FileUpload";
-import ForecastChart from "@/components/Dashboard/ForecastChart";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
@@ -21,6 +20,23 @@ const TABS = [
   { label: "24 Hours",  hours: 24 },
   { label: "7 Days",    hours: 168 },
 ];
+
+// Aggregate uploaded data for a given time window
+function getHorizonData(data, hours) {
+  if (!data || hours === 1) return data;
+  const rows = data.chart ? data.chart.slice(0, Math.min(hours, data.chart.length)) : [];
+  const actuals = rows.map((r) => r.actual).filter((v) => v != null && v > 0);
+  const preds   = rows.map((r) => r.predicted).filter((v) => v != null && v > 0);
+  const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+  const peak = (arr) => arr.length ? Math.round(Math.max(...arr)) : null;
+  return {
+    ...data,
+    chart: rows,
+    current_demand_kwh:     avg(actuals)  ?? data.current_demand_kwh,
+    predicted_next_hour_kwh: avg(preds)   ?? data.predicted_next_hour_kwh,
+    peak_demand_kwh:         peak(actuals) ?? data.peak_demand_kwh,
+  };
+}
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -53,7 +69,7 @@ export default function FacilityDetailPage() {
     try {
       const form = new FormData();
       form.append("file", uploadedFile);
-      const res = await fetch(
+      const res  = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facility.facilityType}`,
         { method: "POST", body: form }
       );
@@ -83,7 +99,8 @@ export default function FacilityDetailPage() {
   }
 
   const reportFacility = { name: facility.name, category: facility.category, status: facility.status, facilityType: facility.facilityType };
-  const activeData = uploadedData || defaultData;
+  const baseData       = uploadedData || defaultData;
+  const activeData     = getHorizonData(baseData, TABS[activeTab].hours);
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -138,7 +155,7 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* Time horizon tabs — only after upload */}
+        {/* Time horizon tabs - only after upload */}
         {uploadedData && facility.hasData && (
           <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
             {TABS.map((tab, i) => (
@@ -155,34 +172,23 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* Next Hour view */}
-        {activeTab === 0 && (
-          <>
-            <section className="mb-10">
-              {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
-            </section>
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-              <div className="lg:col-span-2">
-                {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
-              </div>
-              {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
-            </section>
-            <section className="mb-10">
-              {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
-            </section>
-          </>
-        )}
+        {/* KPI cards */}
+        <section className="mb-10">
+          {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+        </section>
 
-        {/* Forecast views — only render when tab is active and data uploaded */}
-        {activeTab > 0 && uploadedData && facility.hasData && (
-          <section className="mb-10">
-            <ForecastChart
-              facilityId={id}
-              active={true}
-              hours={TABS[activeTab].hours}
-            />
-          </section>
-        )}
+        {/* Chart + Insights */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          <div className="lg:col-span-2">
+            {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+          </div>
+          {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
+        </section>
+
+        {/* Recommendations */}
+        <section className="mb-10">
+          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+        </section>
 
         {/* Download Report */}
         {facility.hasData && activeData && (
