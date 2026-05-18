@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 
-export default function FileUpload({ onDataLoaded, facilityType = "hospital" }) {
+export default function FileUpload({ onDataLoaded, onFileReady, facilityType = "hospital" }) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
@@ -32,10 +32,11 @@ export default function FileUpload({ onDataLoaded, facilityType = "hospital" }) 
     if (!file) return;
     setLoading(true);
     setError(null);
+    const selectedFile = file;
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", selectedFile);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facilityType}`,
@@ -51,6 +52,7 @@ export default function FileUpload({ onDataLoaded, facilityType = "hospital" }) 
       }
 
       onDataLoaded(data);
+      if (onFileReady) onFileReady(selectedFile);
       setShowModal(false);
       setFile(null);
     } catch (err) {

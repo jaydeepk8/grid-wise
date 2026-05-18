@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Footer from "@/components/Footer";
 import KPI from "@/components/Dashboard/KPI";
 import EnergyChart from "@/components/Dashboard/EnergyChart";
@@ -18,6 +18,10 @@ export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
   const [uploadedData, setUploadedData] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveRefreshing, setLiveRefreshing] = useState(false);
+  const liveIntervalRef = useRef(null);
 
   const [defaultData, setDefaultData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +42,31 @@ export default function FacilityDetailPage() {
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const refreshLive = useCallback(async () => {
+    if (!uploadedFile || !facility?.facilityType) return;
+    setLiveRefreshing(true);
+    try {
+      const form = new FormData();
+      form.append("file", uploadedFile);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facility.facilityType}`,
+        { method: "POST", body: form }
+      );
+      const data = await res.json();
+      if (!data.error) setUploadedData(data);
+    } catch {}
+    finally { setLiveRefreshing(false); }
+  }, [uploadedFile, facility]);
+
+  useEffect(() => {
+    if (liveMode && uploadedFile) {
+      liveIntervalRef.current = setInterval(refreshLive, 30000);
+    } else {
+      clearInterval(liveIntervalRef.current);
+    }
+    return () => clearInterval(liveIntervalRef.current);
+  }, [liveMode, uploadedFile, refreshLive]);
 
   if (!facility) {
     return (
@@ -82,7 +111,8 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); }}
+              onDataLoaded={(data) => { setUploadedData(data); setLiveMode(false); }}
+              onFileReady={(f) => setUploadedFile(f)}
             />
           )}
         </div>
@@ -96,7 +126,14 @@ export default function FacilityDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button
+                onClick={() => setLiveMode(l => !l)}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${liveMode ? "bg-white text-[#4a6741]" : "bg-white/20 text-white hover:bg-white/30"}`}
+              >
+                <span className={`w-2 h-2 rounded-full ${liveMode ? "bg-[#4a6741] animate-pulse" : "bg-white/60"}`} />
+                {liveRefreshing ? "Refreshing..." : liveMode ? "Live" : "Go Live"}
+              </button>
+              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setLiveMode(false); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
