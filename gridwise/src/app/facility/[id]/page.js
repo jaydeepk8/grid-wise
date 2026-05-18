@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -21,12 +21,10 @@ export default function FacilityDetailPage() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [liveRefreshing, setLiveRefreshing] = useState(false);
   const liveIntervalRef = useRef(null);
-
   const [defaultData, setDefaultData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Single API call for the whole page
   useEffect(() => {
     if (!facility?.hasData) { setLoading(false); return; }
     setLoading(true);
@@ -71,7 +69,7 @@ export default function FacilityDetailPage() {
       <div className="min-h-screen flex flex-col items-center justify-center pt-32 text-center px-6">
         <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">search_off</span>
         <h1 className="text-2xl font-serif text-[#2d3a2d] mb-2">Facility not found</h1>
-        <p className="text-slate-500 mb-6">The facility "{id}" does not exist.</p>
+        <p className="text-slate-500 mb-6">The facility does not exist.</p>
         <Link href="/facility" className="bg-[#4a6741] text-white px-6 py-3 rounded-full text-sm font-medium hover:opacity-90 transition">
           Back to Facilities
         </Link>
@@ -94,7 +92,6 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
-        {/* Header */}
         <div className="bg-[#eef3ec] rounded-3xl px-4 md:px-10 py-6 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-8 mb-6">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -115,7 +112,6 @@ export default function FacilityDetailPage() {
           )}
         </div>
 
-        {/* Uploaded data banner */}
         {uploadedData && (
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-10">
             <div className="flex items-center gap-3">
@@ -123,11 +119,11 @@ export default function FacilityDetailPage() {
               <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
             </div>
             <div className="flex items-center gap-3">
-              <ModelAccuracy facilityId={id} />
               <div className="flex items-center gap-1.5 text-xs text-white/80">
                 <span className={`w-2 h-2 rounded-full bg-white ${liveRefreshing ? "animate-ping" : "animate-pulse"}`} />
-                {liveRefreshing ? "Refreshing..." : "Live — updates every 30s"}
+                {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
               </div>
+              <ModelAccuracy facilityId={id} />
               <button onClick={() => { setUploadedData(null); setUploadedFile(null); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
@@ -135,12 +131,10 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* KPI */}
         <section className="mb-10">
           {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
         </section>
 
-        {/* Chart + Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
             {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
@@ -148,12 +142,10 @@ export default function FacilityDetailPage() {
           {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
 
-        {/* Recommendations */}
         <section className="mb-10">
           {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
         </section>
 
-        {/* Download Report */}
         {facility.hasData && activeData && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
