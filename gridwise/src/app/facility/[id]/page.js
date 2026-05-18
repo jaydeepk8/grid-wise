@@ -10,26 +10,32 @@ import AIInsights from "@/components/Dashboard/AIInsights";
 import AIRecommendations from "@/components/Dashboard/AIRecommendations";
 import ModelAccuracy from "@/components/Dashboard/ModelAccuracy";
 import FileUpload from "@/components/FileUpload";
+import ForecastChart from "@/components/Dashboard/ForecastChart";
 import { facilityConfig } from "@/lib/facilityConfig";
 import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
-import ForecastChart from "@/components/Dashboard/ForecastChart";
+
+const TABS = [
+  { label: "Next Hour", hours: 1 },
+  { label: "12 Hours",  hours: 12 },
+  { label: "24 Hours",  hours: 24 },
+  { label: "7 Days",    hours: 168 },
+];
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
+  const [activeTab, setActiveTab]       = useState(0);
   const [uploadedData, setUploadedData] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [liveRefreshing, setLiveRefreshing] = useState(false);
   const liveIntervalRef = useRef(null);
-  const [defaultData, setDefaultData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [defaultData, setDefaultData]   = useState(null);
+  const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
     if (!facility?.hasData) { setLoading(false); return; }
     setLoading(true);
-    setError(false);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -37,7 +43,7 @@ export default function FacilityDetailPage() {
     })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.current_demand_kwh) { setDefaultData(data); document.title = `${facility.name} | GridWise`; } })
-      .catch(() => setError(true))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -59,9 +65,7 @@ export default function FacilityDetailPage() {
 
   useEffect(() => {
     clearInterval(liveIntervalRef.current);
-    if (uploadedFile) {
-      liveIntervalRef.current = setInterval(refreshLive, 30000);
-    }
+    if (uploadedFile) liveIntervalRef.current = setInterval(refreshLive, 30000);
     return () => clearInterval(liveIntervalRef.current);
   }, [uploadedFile, refreshLive]);
 
@@ -93,6 +97,7 @@ export default function FacilityDetailPage() {
           <span className="text-[#4a6741] font-medium">{facility.name}</span>
         </div>
 
+        {/* Header */}
         <div className="bg-[#eef3ec] rounded-3xl px-4 md:px-10 py-6 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-8 mb-6">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-[#4a6741]/10 rounded-2xl flex items-center justify-center">
@@ -113,8 +118,9 @@ export default function FacilityDetailPage() {
           )}
         </div>
 
+        {/* Uploaded data banner */}
         {uploadedData && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-6">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-white text-sm">check_circle</span>
               <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
@@ -132,27 +138,51 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        <section className="mb-10">
-          {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
-        </section>
-
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          <div className="lg:col-span-2">
-            {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
-          </div>
-          {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
-        </section>
-
-        <section className="mb-10">
-          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
-        </section>
-
+        {/* Time horizon tabs */}
         {facility.hasData && (
+          <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
+            {TABS.map((tab, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTab(i)}
+                className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
+                  activeTab === i
+                    ? "bg-[#4a6741] text-white shadow"
+                    : "text-slate-400 hover:text-[#4a6741]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Next Hour view */}
+        {activeTab === 0 && (
+          <>
+            <section className="mb-10">
+              {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+            </section>
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+              <div className="lg:col-span-2">
+                {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+              </div>
+              {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
+            </section>
+            <section className="mb-10">
+              {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+            </section>
+          </>
+        )}
+
+        {/* Forecast views */}
+        {activeTab > 0 && facility.hasData && (
           <section className="mb-10">
-            <ForecastChart facilityId={id} active={!!uploadedData} />
+            <ForecastChart facilityId={id} active={!!uploadedData} hours={TABS[activeTab].hours} />
           </section>
         )}
 
+        {/* Download Report */}
         {facility.hasData && activeData && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
