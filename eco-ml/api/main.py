@@ -277,7 +277,7 @@ def forecast_24h(payload: PredictRequest):
         raise HTTPException(status_code=404, detail=f"Unknown facility: {facility}")
 
     dt_naive = payload.datetime.replace(tzinfo=None)
-    df = datasets[facility]
+    df = datasets[facility]["ml"]
 
     # Get last known row as seed
     last_row = df.iloc[-1]
@@ -364,7 +364,7 @@ def explain_prediction(payload: PredictRequest):
         raise HTTPException(status_code=404, detail=f"Unknown facility: {facility}")
 
     dt_naive = payload.datetime.replace(tzinfo=None)
-    df = datasets[facility]
+    df = datasets[facility]["ml"]
 
     hour        = dt_naive.hour
     day_of_week = dt_naive.weekday()
