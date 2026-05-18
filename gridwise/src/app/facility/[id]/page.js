@@ -120,7 +120,7 @@ export default function FacilityDetailPage() {
         {/* SHAP Explainability */}
         {facility.hasData && (
           <section className="mb-10">
-            <SHAPChart facilityId={id} />
+            <SHAPChart facilityId={id} active={!!uploadedData} />
           </section>
         )}
 

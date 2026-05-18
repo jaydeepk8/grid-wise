@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { facilityConfig } from "@/lib/facilityConfig";
 
-export default function SHAPChart({ facilityId = "hospital" }) {
+export default function SHAPChart({ facilityId = "hospital", active = false }) {
   const [data, setData]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const config = facilityConfig[facilityId];
 
   useEffect(() => {
+    if (!active || !config?.hasData) return;
     setLoading(true); setData(null);
-    if (!config?.hasData) { setLoading(false); return; }
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/explain`, {
       method: "POST",
@@ -21,11 +21,18 @@ export default function SHAPChart({ facilityId = "hospital" }) {
         facility_type: config.facilityType,
       }),
     })
-      .then((r) => r.json())
-      .then(setData)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setData(d?.importance ? d : null))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [facilityId]);
+  }, [facilityId, active]);
+
+  if (!active) return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center min-h-[200px]">
+      <span className="material-symbols-outlined text-4xl text-slate-200 mb-3">psychology</span>
+      <p className="text-slate-300 font-medium text-sm">Upload data to see feature importance</p>
+    </div>
+  );
 
   if (loading) return (
     <div className="bg-white rounded-2xl p-6 shadow-sm animate-pulse">
