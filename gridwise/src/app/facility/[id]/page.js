@@ -15,36 +15,29 @@ import { generateReport } from "@/lib/generateReport";
 import { KPISkeleton, ChartSkeleton, InsightsSkeleton, RecommendationsSkeleton } from "@/components/Dashboard/Skeleton";
 
 const TABS = [
-  { label: "Next Hour", hours: 1 },
-  { label: "12 Hours",  hours: 12 },
-  { label: "24 Hours",  hours: 24 },
+  { label: "Next Hour", hours: 1   },
+  { label: "12 Hours",  hours: 12  },
+  { label: "24 Hours",  hours: 24  },
   { label: "7 Days",    hours: 168 },
 ];
 
-// Aggregate uploaded data for a given time window
-// data.chart = { labels: [], actual: [], predicted: [] }
-function getHorizonData(data, hours) {
-  try {
-    if (!data || hours === 1) return data;
-    const chart = data.chart;
-    if (!chart?.labels?.length) return data;
-    const n       = Math.min(hours, chart.labels.length);
-    const labels  = chart.labels.slice(0, n);
-    const actual  = chart.actual.slice(0, n);
-    const pred    = chart.predicted.slice(0, n);
-    const nums    = (arr) => arr.map(Number).filter((v) => Number.isFinite(v) && v > 0);
-    const avg     = (arr) => { const a = nums(arr); return a.length ? Math.round(a.reduce((x,y)=>x+y,0)/a.length) : 0; };
-    const peak    = (arr) => { const a = nums(arr); return a.length ? Math.round(a.reduce((x,y)=>Math.max(x,y),0)) : 0; };
-    return {
-      ...data,
-      chart: { labels, actual, predicted: pred },
-      current_demand_kwh:      avg(actual) || data.current_demand_kwh,
-      predicted_next_hour_kwh: avg(pred)   || data.predicted_next_hour_kwh,
-      peak_demand_kwh:         peak(actual) || data.peak_demand_kwh,
-    };
-  } catch (e) {
-    return data;
-  }
+// Convert forecast API response into the same shape the components expect
+function buildForecastData(forecast, baseData) {
+  if (!forecast?.forecast_labels) return null;
+  const peak = forecast.peak_value ?? 0;
+  return {
+    ...baseData,
+    current_demand_kwh:      forecast.avg_predicted,
+    predicted_next_hour_kwh: peak,
+    peak_demand_kwh:         peak,
+    peak_load_risk:          peak > 800 ? "High" : peak > 600 ? "Medium" : "Low",
+    renewable_mix_percent:   baseData?.renewable_mix_percent ?? 0,
+    chart: {
+      labels:    forecast.forecast_labels,
+      actual:    forecast.forecast_labels.map(() => null),
+      predicted: forecast.forecast_values,
+    },
+  };
 }
 
 export default function FacilityDetailPage() {
@@ -57,6 +50,8 @@ export default function FacilityDetailPage() {
   const liveIntervalRef                     = useRef(null);
   const [defaultData, setDefaultData]       = useState(null);
   const [loading, setLoading]               = useState(true);
+  const [forecastCache, setForecastCache]   = useState({});
+  const [forecastLoading, setForecastLoading] = useState(false);
 
   useEffect(() => {
     if (!facility?.hasData) { setLoading(false); return; }
@@ -94,6 +89,23 @@ export default function FacilityDetailPage() {
     return () => clearInterval(liveIntervalRef.current);
   }, [uploadedFile, refreshLive]);
 
+  // Fetch forecast when switching to a forecast tab
+  useEffect(() => {
+    if (activeTab === 0 || !uploadedData || !facility?.facilityType) return;
+    const hours = TABS[activeTab].hours;
+    if (forecastCache[hours]) return; // already fetched
+    setForecastLoading(true);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/forecast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType, hours }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.forecast_labels) setForecastCache((prev) => ({ ...prev, [hours]: d })); })
+      .catch(() => {})
+      .finally(() => setForecastLoading(false));
+  }, [activeTab, uploadedData, facility]);
+
   if (!facility) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center pt-32 text-center px-6">
@@ -108,8 +120,12 @@ export default function FacilityDetailPage() {
   }
 
   const reportFacility = { name: facility.name, category: facility.category, status: facility.status, facilityType: facility.facilityType };
-  const baseData       = uploadedData || defaultData;
-  const activeData     = getHorizonData(baseData, TABS[activeTab].hours);
+  const baseData    = uploadedData || defaultData;
+  const isNextHour  = activeTab === 0;
+  const activeHours = TABS[activeTab].hours;
+  const forecast    = forecastCache[activeHours];
+  const activeData  = isNextHour ? baseData : buildForecastData(forecast, baseData);
+  const showLoading = loading || (!isNextHour && forecastLoading && !forecast);
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -138,7 +154,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); }}
+              onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); setForecastCache({}); }}
               onFileReady={(f) => setUploadedFile(f)}
             />
           )}
@@ -157,7 +173,7 @@ export default function FacilityDetailPage() {
                 {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
               </div>
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
@@ -166,58 +182,37 @@ export default function FacilityDetailPage() {
 
         {/* Time horizon tabs - only after upload */}
         {uploadedData && facility.hasData && (
-          <div className="flex flex-wrap items-center gap-3 mb-8">
-            <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm w-fit">
-              {TABS.map((tab, i) => {
-                const available = uploadedData?.chart?.labels?.length ?? 0;
-                const disabled  = i > 0 && tab.hours > available;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => !disabled && setActiveTab(i)}
-                    title={disabled ? `Need ${tab.hours} rows — your CSV has ${available}` : ""}
-                    className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
-                      disabled
-                        ? "text-slate-200 cursor-not-allowed"
-                        : activeTab === i
-                        ? "bg-[#4a6741] text-white shadow"
-                        : "text-slate-400 hover:text-[#4a6741]"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-            {(() => {
-              const available = uploadedData?.chart?.labels?.length ?? 0;
-              const locked = TABS.filter((t, i) => i > 0 && t.hours > available);
-              return locked.length > 0 ? (
-                <p className="text-xs text-slate-400">
-                  Upload at least {Math.min(...locked.map(t => t.hours))} rows to unlock more views
-                  <span className="text-slate-300"> (your CSV has {available} rows)</span>
-                </p>
-              ) : null;
-            })()}
+          <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
+            {TABS.map((tab, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTab(i)}
+                className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
+                  activeTab === i ? "bg-[#4a6741] text-white shadow" : "text-slate-400 hover:text-[#4a6741]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         )}
 
         {/* KPI cards */}
         <section className="mb-10">
-          {loading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+          {showLoading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
         </section>
 
         {/* Chart + Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
-            {loading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+            {showLoading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
           </div>
-          {loading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
+          {showLoading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
         </section>
 
         {/* Recommendations */}
         <section className="mb-10">
-          {loading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+          {showLoading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
         </section>
 
         {/* Download Report */}
