@@ -22,20 +22,29 @@ const TABS = [
 ];
 
 // Aggregate uploaded data for a given time window
+// data.chart = { labels: [], actual: [], predicted: [] }
 function getHorizonData(data, hours) {
-  if (!data || hours === 1) return data;
-  const rows = data.chart ? data.chart.slice(0, Math.min(hours, data.chart.length)) : [];
-  const actuals = rows.map((r) => r.actual).filter((v) => v != null && v > 0);
-  const preds   = rows.map((r) => r.predicted).filter((v) => v != null && v > 0);
-  const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-  const peak = (arr) => arr.length ? Math.round(Math.max(...arr)) : null;
-  return {
-    ...data,
-    chart: rows,
-    current_demand_kwh:     avg(actuals)  ?? data.current_demand_kwh,
-    predicted_next_hour_kwh: avg(preds)   ?? data.predicted_next_hour_kwh,
-    peak_demand_kwh:         peak(actuals) ?? data.peak_demand_kwh,
-  };
+  try {
+    if (!data || hours === 1) return data;
+    const chart = data.chart;
+    if (!chart?.labels?.length) return data;
+    const n       = Math.min(hours, chart.labels.length);
+    const labels  = chart.labels.slice(0, n);
+    const actual  = chart.actual.slice(0, n);
+    const pred    = chart.predicted.slice(0, n);
+    const nums    = (arr) => arr.map(Number).filter((v) => Number.isFinite(v) && v > 0);
+    const avg     = (arr) => { const a = nums(arr); return a.length ? Math.round(a.reduce((x,y)=>x+y,0)/a.length) : 0; };
+    const peak    = (arr) => { const a = nums(arr); return a.length ? Math.round(a.reduce((x,y)=>Math.max(x,y),0)) : 0; };
+    return {
+      ...data,
+      chart: { labels, actual, predicted: pred },
+      current_demand_kwh:      avg(actual) || data.current_demand_kwh,
+      predicted_next_hour_kwh: avg(pred)   || data.predicted_next_hour_kwh,
+      peak_demand_kwh:         peak(actual) || data.peak_demand_kwh,
+    };
+  } catch (e) {
+    return data;
+  }
 }
 
 export default function FacilityDetailPage() {
