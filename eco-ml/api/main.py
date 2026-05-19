@@ -30,9 +30,9 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent.parent
 FEATURES = ["hour", "day_of_week", "is_weekend", "prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]
 FACILITY_FILES = {
-    "hospital":    ("hospital_energy_rf.pkl",  "hospital_hourly_energy.csv",   "hospital_ml_ready.csv"),
-    "data-center": ("datacenter_energy_rf.pkl", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
-    "mnc":         ("mnc_energy_rf.pkl",         "mnc_hourly_energy.csv",        "mnc_ml_ready.csv"),
+    "hospital":    ("hospital_energy_xgb.pkl", "hospital_hourly_energy.csv",   "hospital_ml_ready.csv"),
+    "data-center": ("datacenter_energy_xgb.pkl", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
+    "mnc":         ("mnc_energy_xgb.pkl",         "mnc_hourly_energy.csv",        "mnc_ml_ready.csv"),
 }
 
 models: dict = {}

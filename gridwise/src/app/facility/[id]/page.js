@@ -89,21 +89,39 @@ export default function FacilityDetailPage() {
     return () => clearInterval(liveIntervalRef.current);
   }, [uploadedFile, refreshLive]);
 
-  // Fetch forecast when switching to a forecast tab
+  // Fetch forecast when switching to a forecast tab (with retry)
   useEffect(() => {
     if (activeTab === 0 || !uploadedData || !facility?.facilityType) return;
     const hours = TABS[activeTab].hours;
-    if (forecastCache[hours]) return; // already fetched
+    if (forecastCache[hours]) return;
+    let attempts = 0;
     setForecastLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/forecast`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType, hours }),
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.forecast_labels) setForecastCache((prev) => ({ ...prev, [hours]: d })); })
-      .catch(() => {})
-      .finally(() => setForecastLoading(false));
+
+    const tryFetch = () => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/forecast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType, hours }),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (d?.forecast_labels) {
+            setForecastCache((prev) => ({ ...prev, [hours]: d }));
+            setForecastLoading(false);
+          } else if (attempts < 4) {
+            attempts++;
+            setTimeout(tryFetch, 4000);
+          } else {
+            setForecastLoading(false);
+          }
+        })
+        .catch(() => {
+          if (attempts < 4) { attempts++; setTimeout(tryFetch, 4000); }
+          else setForecastLoading(false);
+        });
+    };
+
+    tryFetch();
   }, [activeTab, uploadedData?.total_rows, facility?.facilityType]);
 
   if (!facility) {
