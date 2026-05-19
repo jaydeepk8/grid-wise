@@ -166,18 +166,39 @@ export default function FacilityDetailPage() {
 
         {/* Time horizon tabs - only after upload */}
         {uploadedData && facility.hasData && (
-          <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
-            {TABS.map((tab, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTab(i)}
-                className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
-                  activeTab === i ? "bg-[#4a6741] text-white shadow" : "text-slate-400 hover:text-[#4a6741]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3 mb-8">
+            <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm w-fit">
+              {TABS.map((tab, i) => {
+                const available = uploadedData?.chart?.labels?.length ?? 0;
+                const disabled  = i > 0 && tab.hours > available;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => !disabled && setActiveTab(i)}
+                    title={disabled ? `Need ${tab.hours} rows — your CSV has ${available}` : ""}
+                    className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
+                      disabled
+                        ? "text-slate-200 cursor-not-allowed"
+                        : activeTab === i
+                        ? "bg-[#4a6741] text-white shadow"
+                        : "text-slate-400 hover:text-[#4a6741]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            {(() => {
+              const available = uploadedData?.chart?.labels?.length ?? 0;
+              const locked = TABS.filter((t, i) => i > 0 && t.hours > available);
+              return locked.length > 0 ? (
+                <p className="text-xs text-slate-400">
+                  Upload at least {Math.min(...locked.map(t => t.hours))} rows to unlock more views
+                  <span className="text-slate-300"> (your CSV has {available} rows)</span>
+                </p>
+              ) : null;
+            })()}
           </div>
         )}
 
