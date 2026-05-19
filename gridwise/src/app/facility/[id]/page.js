@@ -104,7 +104,7 @@ export default function FacilityDetailPage() {
       .then((d) => { if (d?.forecast_labels) setForecastCache((prev) => ({ ...prev, [hours]: d })); })
       .catch(() => {})
       .finally(() => setForecastLoading(false));
-  }, [activeTab, uploadedData, facility]);
+  }, [activeTab, uploadedData?.total_rows, facility?.facilityType]);
 
   if (!facility) {
     return (
@@ -124,8 +124,9 @@ export default function FacilityDetailPage() {
   const isNextHour  = activeTab === 0;
   const activeHours = TABS[activeTab].hours;
   const forecast    = forecastCache[activeHours];
-  const activeData  = isNextHour ? baseData : buildForecastData(forecast, baseData);
-  const showLoading = loading || (!isNextHour && forecastLoading && !forecast);
+  const forecastData = buildForecastData(forecast, baseData);
+  const activeData   = isNextHour ? baseData : (forecastData ?? baseData);
+  const showLoading  = loading || (!isNextHour && forecastLoading && !forecast);
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -194,6 +195,24 @@ export default function FacilityDetailPage() {
                 {tab.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Forecast status banner */}
+        {!isNextHour && uploadedData && (
+          <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-6 text-sm ${
+            forecastLoading ? "bg-blue-50 text-blue-600" :
+            forecastData   ? "bg-[#eef3ec] text-[#4a6741]" :
+                             "bg-amber-50 text-amber-600"
+          }`}>
+            <span className={`material-symbols-outlined text-sm ${forecastLoading ? "animate-spin" : ""}`}>
+              {forecastLoading ? "autorenew" : forecastData ? "check_circle" : "info"}
+            </span>
+            {forecastLoading
+              ? `Generating ${TABS[activeTab].label} forecast...`
+              : forecastData
+              ? `Showing AI-predicted energy demand for the next ${TABS[activeTab].label.toLowerCase()}`
+              : "Forecast unavailable — showing last known data. Try again shortly."}
           </div>
         )}
 
