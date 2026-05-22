@@ -4,14 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 
-const facilityOptions = ["Hospital", "Data Center", "MNC"];
+const facilityOptions = [
+  { label: "Hospital", value: "hospital" },
+  { label: "Data Center", value: "data-center" },
+  { label: "MNC", value: "mnc" },
+];
 
 export default function PredictPage() {
   const [form, setForm] = useState({
-    facility_type: "Hospital",
+    facility_type: "hospital",
     current_load: "",
-    hour: new Date().getHours(),
-    day_of_week: new Date().getDay(),
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,14 +29,16 @@ export default function PredictPage() {
     setResult(null);
 
     try {
+      const currentLoad = parseFloat(form.current_load);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          current_load: parseFloat(form.current_load),
-          hour: parseInt(form.hour),
-          day_of_week: parseInt(form.day_of_week),
+          datetime: new Date().toISOString(),
+          facility_type: form.facility_type,
+          prev_hour_energy: currentLoad,
+          rolling_3h_avg: currentLoad,
+          rolling_6h_avg: currentLoad,
         }),
       });
 
@@ -51,35 +55,22 @@ export default function PredictPage() {
   return (
     <div className="bg-[#f1f4f1] min-h-screen flex flex-col pt-32">
       <div className="max-w-2xl mx-auto px-6 w-full flex-1">
-
-        
         <div className="bg-[#eef3ec] rounded-3xl px-10 py-8 mb-10">
           <div className="flex items-center gap-4 mb-3">
             <div className="w-12 h-12 bg-[#4a6741]/15 rounded-2xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#4a6741] text-2xl">
-                bolt
-              </span>
+              <span className="material-symbols-outlined text-[#4a6741] text-2xl">bolt</span>
             </div>
             <div>
-              <h1 className="text-3xl font-serif text-[#2d3a2d]">
-                Energy Prediction
-              </h1>
-              <p className="text-slate-500 text-sm">
-                Predict next-hour energy load using the Random Forest model
-              </p>
+              <h1 className="text-3xl font-serif text-[#2d3a2d]">Energy Prediction</h1>
+              <p className="text-slate-500 text-sm">Predict next-hour energy load using the Random Forest model</p>
             </div>
           </div>
         </div>
 
-        
         <div className="bg-white rounded-2xl px-8 py-8 shadow-sm mb-6">
-          <h2 className="text-lg font-serif text-[#2d3a2d] mb-6">
-            Input Parameters
-          </h2>
+          <h2 className="text-lg font-serif text-[#2d3a2d] mb-6">Input Parameters</h2>
 
           <div className="space-y-5">
-
-            
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
                 Facility Type
@@ -91,14 +82,13 @@ export default function PredictPage() {
                 className="w-full border border-[#4a6741]/20 rounded-xl px-4 py-3 text-sm text-[#2d3a2d] bg-[#f9fbf9] focus:outline-none focus:ring-2 focus:ring-[#4a6741]/30"
               >
                 {facilityOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
             </div>
 
-           
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
                 Current Load (kWh)
@@ -112,41 +102,8 @@ export default function PredictPage() {
                 className="w-full border border-[#4a6741]/20 rounded-xl px-4 py-3 text-sm text-[#2d3a2d] bg-[#f9fbf9] focus:outline-none focus:ring-2 focus:ring-[#4a6741]/30"
               />
             </div>
-
-           
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
-                  Hour (0–23)
-                </label>
-                <input
-                  type="number"
-                  name="hour"
-                  value={form.hour}
-                  onChange={handleChange}
-                  min={0}
-                  max={23}
-                  className="w-full border border-[#4a6741]/20 rounded-xl px-4 py-3 text-sm text-[#2d3a2d] bg-[#f9fbf9] focus:outline-none focus:ring-2 focus:ring-[#4a6741]/30"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
-                  Day of Week (0=Mon)
-                </label>
-                <input
-                  type="number"
-                  name="day_of_week"
-                  value={form.day_of_week}
-                  onChange={handleChange}
-                  min={0}
-                  max={6}
-                  className="w-full border border-[#4a6741]/20 rounded-xl px-4 py-3 text-sm text-[#2d3a2d] bg-[#f9fbf9] focus:outline-none focus:ring-2 focus:ring-[#4a6741]/30"
-                />
-              </div>
-            </div>
           </div>
 
-          
           <button
             onClick={handlePredict}
             disabled={loading || !form.current_load}
@@ -154,9 +111,7 @@ export default function PredictPage() {
           >
             {loading ? (
               <>
-                <span className="material-symbols-outlined text-sm animate-spin">
-                  autorenew
-                </span>
+                <span className="material-symbols-outlined text-sm animate-spin">autorenew</span>
                 Predicting...
               </>
             ) : (
@@ -168,7 +123,6 @@ export default function PredictPage() {
           </button>
         </div>
 
-        
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl px-6 py-4 mb-6 flex items-center gap-3">
             <span className="material-symbols-outlined text-red-400">error</span>
@@ -176,26 +130,21 @@ export default function PredictPage() {
           </div>
         )}
 
-        
         {result && (
           <div className="bg-[#eef3ec] border border-[#4a6741]/20 rounded-2xl px-8 py-7 mb-10 text-center">
             <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
               Predicted Next-Hour Load
             </p>
             <p className="text-5xl font-serif text-[#4a6741] mb-1">
-              {result.predicted_kwh ?? result.prediction ?? "—"}
+              {result.predicted_next_hour_kwh ?? "—"}
             </p>
             <p className="text-slate-500 text-sm">kWh</p>
-            <Link
-              href="/insights"
-              className="mt-5 inline-flex items-center gap-2 text-sm text-[#4a6741] font-medium hover:underline"
-            >
+            <Link href="/insights" className="mt-5 inline-flex items-center gap-2 text-sm text-[#4a6741] font-medium hover:underline">
               <span className="material-symbols-outlined text-sm">insights</span>
               View full insights
             </Link>
           </div>
         )}
-
       </div>
       <Footer />
     </div>

@@ -20,7 +20,7 @@ export default function ModelAccuracy({ facilityId = "hospital" }) {
       }
     }
     fetchAccuracy();
-  }, [facilityId]);
+  }, [config.facilityType]);
 
   if (!accuracy) return null;
 

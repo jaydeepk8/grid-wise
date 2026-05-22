@@ -30,19 +30,24 @@ function buildForecastData(forecast, baseData) {
     current_demand_kwh:      forecast.avg_predicted,
     predicted_next_hour_kwh: peak,
     peak_demand_kwh:         peak,
-    peak_load_risk:          peak > 800 ? "High" : peak > 600 ? "Medium" : "Low",
-    renewable_mix_percent:   baseData?.renewable_mix_percent ?? 0,
+    peak_load_risk:          forecast.peak_load_risk ?? (peak > 800 ? "High Risk" : peak > 600 ? "Medium Risk" : "Low Risk"),
+    renewable_mix_percent:   forecast.renewable_mix_percent ?? baseData?.renewable_mix_percent ?? 0,
     chart: {
       labels:    forecast.forecast_labels,
       actual:    forecast.forecast_labels.map(() => null),
       predicted: forecast.forecast_values,
     },
+    insights:        forecast.insights ?? baseData?.insights ?? [],
+    recommendations: forecast.recommendations ?? baseData?.recommendations ?? [],
   };
 }
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
+  const facilityType = facility?.facilityType;
+  const facilityName = facility?.name;
+  const hasFacilityData = facility?.hasData;
   const [activeTab, setActiveTab]           = useState(0);
   const [uploadedData, setUploadedData]     = useState(null);
   const [uploadedFile, setUploadedFile]     = useState(null);
@@ -54,34 +59,34 @@ export default function FacilityDetailPage() {
   const [forecastLoading, setForecastLoading] = useState(false);
 
   useEffect(() => {
-    if (!facility?.hasData) { setLoading(false); return; }
+    if (!hasFacilityData) { setLoading(false); return; }
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType }),
+      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facilityType }),
     })
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.current_demand_kwh) { setDefaultData(data); document.title = `${facility.name} | GridWise`; } })
+      .then((data) => { if (data?.current_demand_kwh) { setDefaultData(data); document.title = `${facilityName} | GridWise`; } })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [facilityName, facilityType, hasFacilityData]);
 
   const refreshLive = useCallback(async () => {
-    if (!uploadedFile || !facility?.facilityType) return;
+    if (!uploadedFile || !facilityType) return;
     setLiveRefreshing(true);
     try {
       const form = new FormData();
       form.append("file", uploadedFile);
       const res  = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facility.facilityType}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facilityType}`,
         { method: "POST", body: form }
       );
       const data = await res.json();
       if (!data.error) setUploadedData(data);
     } catch {}
     finally { setLiveRefreshing(false); }
-  }, [uploadedFile, facility]);
+  }, [uploadedFile, facilityType]);
 
   useEffect(() => {
     clearInterval(liveIntervalRef.current);
@@ -91,7 +96,7 @@ export default function FacilityDetailPage() {
 
   // Fetch forecast when switching to a forecast tab (with retry)
   useEffect(() => {
-    if (activeTab === 0 || !uploadedData || !facility?.facilityType) return;
+    if (activeTab === 0 || !uploadedData || !facilityType) return;
     const hours = TABS[activeTab].hours;
     if (forecastCache[hours]) return;
     let attempts = 0;
@@ -101,7 +106,14 @@ export default function FacilityDetailPage() {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/forecast`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facility.facilityType, hours }),
+        body: JSON.stringify({
+          datetime: uploadedData.source_datetime || new Date().toISOString(),
+          facility_type: facilityType,
+          hours,
+          prev_hour_energy: uploadedData.prev_hour_energy ?? uploadedData.current_demand_kwh,
+          rolling_3h_avg: uploadedData.rolling_3h_avg,
+          rolling_6h_avg: uploadedData.rolling_6h_avg,
+        }),
       })
         .then((r) => r.ok ? r.json() : null)
         .then((d) => {
@@ -122,7 +134,7 @@ export default function FacilityDetailPage() {
     };
 
     tryFetch();
-  }, [activeTab, uploadedData?.total_rows, facility?.facilityType]);
+  }, [activeTab, uploadedData, facilityType, forecastCache]);
 
   if (!facility) {
     return (

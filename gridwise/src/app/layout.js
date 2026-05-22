@@ -17,7 +17,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=optional" rel="stylesheet" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4a6741" />
