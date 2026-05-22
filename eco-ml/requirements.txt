@@ -5,5 +5,4 @@ numpy
 pandas
 scikit-learn
 openpyxl
-python-multipartxgboost
-shap
+python-multipart
