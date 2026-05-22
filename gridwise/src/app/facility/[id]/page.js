@@ -42,6 +42,65 @@ function buildForecastData(forecast, baseData) {
   };
 }
 
+function buildFallbackForecast(uploadedData, hours) {
+  if (!uploadedData?.chart?.actual?.length) return null;
+
+  const actual = uploadedData.chart.actual.filter((value) => typeof value === "number");
+  const last = uploadedData.current_demand_kwh ?? actual[actual.length - 1] ?? 0;
+  const previous = actual[actual.length - 2] ?? last;
+  const recentAvg = actual.slice(-6).reduce((sum, value) => sum + value, 0) / Math.max(actual.slice(-6).length, 1);
+  const trend = Math.max(Math.min(last - previous, last * 0.04), -last * 0.04);
+  const start = uploadedData.source_datetime ? new Date(uploadedData.source_datetime) : new Date();
+
+  let rolling = last;
+  const labels = [];
+  const values = [];
+
+  for (let i = 1; i <= hours; i++) {
+    const dt = new Date(start.getTime() + i * 60 * 60 * 1000);
+    const hour = dt.getHours();
+    const dailyWave = Math.sin(((hour - 6) / 24) * Math.PI * 2) * 0.06 * last;
+    rolling = rolling * 0.72 + recentAvg * 0.2 + (last + trend * i + dailyWave) * 0.08;
+
+    labels.push(hours > 24
+      ? dt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit" })
+      : dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }));
+    values.push(Number(Math.max(0, rolling).toFixed(2)));
+  }
+
+  const peakValue = Math.max(...values);
+  const peakIndex = values.indexOf(peakValue);
+  const avgPredicted = values.reduce((sum, value) => sum + value, 0) / values.length;
+
+  return {
+    facility: uploadedData.facility,
+    forecast_labels: labels,
+    forecast_values: values,
+    peak_hour: labels[peakIndex],
+    peak_value: Number(peakValue.toFixed(2)),
+    avg_predicted: Number(avgPredicted.toFixed(2)),
+    peak_load_risk: peakValue > avgPredicted * 1.1 ? "High Risk" : peakValue > avgPredicted * 1.05 ? "Medium Risk" : "Low Risk",
+    renewable_mix_percent: uploadedData.renewable_mix_percent ?? 45,
+    insights: [
+      `Average predicted demand for this period is ${avgPredicted.toFixed(2)} kWh.`,
+      `Peak demand is expected around ${labels[peakIndex]} at ${peakValue.toFixed(2)} kWh.`,
+      `Forecast horizon covers the next ${hours} hours.`,
+    ],
+    recommendations: [
+      {
+        title: "Plan Load Scheduling Around Forecast Peak",
+        priority: peakValue > avgPredicted * 1.1 ? "High" : "Medium",
+        impact: `Peak demand is ${(((peakValue - avgPredicted) / avgPredicted) * 100).toFixed(2)}% above the forecast average.`,
+      },
+      {
+        title: "Continue Preventive Monitoring",
+        priority: "Low",
+        impact: "Fallback forecast is based on uploaded demand trend while the forecast API is unavailable.",
+      },
+    ],
+  };
+}
+
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const facility = facilityConfig[id];
@@ -57,6 +116,7 @@ export default function FacilityDetailPage() {
   const [loading, setLoading]               = useState(true);
   const [forecastCache, setForecastCache]   = useState({});
   const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastFallback, setForecastFallback] = useState({});
 
   useEffect(() => {
     if (!hasFacilityData) { setLoading(false); return; }
@@ -94,13 +154,21 @@ export default function FacilityDetailPage() {
     return () => clearInterval(liveIntervalRef.current);
   }, [uploadedFile, refreshLive]);
 
-  // Fetch forecast when switching to a forecast tab (with retry)
   useEffect(() => {
     if (activeTab === 0 || !uploadedData || !facilityType) return;
     const hours = TABS[activeTab].hours;
     if (forecastCache[hours]) return;
     let attempts = 0;
     setForecastLoading(true);
+
+    const applyFallbackForecast = () => {
+      const fallback = buildFallbackForecast(uploadedData, hours);
+      if (fallback) {
+        setForecastCache((prev) => ({ ...prev, [hours]: fallback }));
+        setForecastFallback((prev) => ({ ...prev, [hours]: true }));
+      }
+      setForecastLoading(false);
+    };
 
     const tryFetch = () => {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/forecast`, {
@@ -119,17 +187,18 @@ export default function FacilityDetailPage() {
         .then((d) => {
           if (d?.forecast_labels) {
             setForecastCache((prev) => ({ ...prev, [hours]: d }));
+            setForecastFallback((prev) => ({ ...prev, [hours]: false }));
             setForecastLoading(false);
           } else if (attempts < 4) {
             attempts++;
             setTimeout(tryFetch, 4000);
           } else {
-            setForecastLoading(false);
+            applyFallbackForecast();
           }
         })
         .catch(() => {
           if (attempts < 4) { attempts++; setTimeout(tryFetch, 4000); }
-          else setForecastLoading(false);
+          else applyFallbackForecast();
         });
     };
 
@@ -185,7 +254,7 @@ export default function FacilityDetailPage() {
           {facility.hasData && (
             <FileUpload
               facilityType={facility.facilityType}
-              onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); setForecastCache({}); }}
+              onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); setForecastCache({}); setForecastFallback({}); }}
               onFileReady={(f) => setUploadedFile(f)}
             />
           )}
@@ -204,7 +273,7 @@ export default function FacilityDetailPage() {
                 {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
               </div>
               <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
+              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); setForecastFallback({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                 Reset to default
               </button>
             </div>
@@ -241,7 +310,9 @@ export default function FacilityDetailPage() {
             {forecastLoading
               ? `Generating ${TABS[activeTab].label} forecast...`
               : forecastData
-              ? `Showing AI-predicted energy demand for the next ${TABS[activeTab].label.toLowerCase()}`
+              ? forecastFallback[activeHours]
+                ? `Showing trend-based forecast for the next ${TABS[activeTab].label.toLowerCase()} while the API is unavailable`
+                : `Showing AI-predicted energy demand for the next ${TABS[activeTab].label.toLowerCase()}`
               : "Forecast unavailable — showing last known data. Try again shortly."}
           </div>
         )}
