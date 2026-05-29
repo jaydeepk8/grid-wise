@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import { facilityConfig } from "@/lib/facilityConfig";
 
-export default function KPI({ data = null, facilityId = "hospital" }) {
+export default function KPI({ data = null, facilityId = "hospital", isForecasting = false }) {
   const config = facilityConfig[facilityId];
 
   if (!config.hasData) return (
@@ -12,10 +12,10 @@ export default function KPI({ data = null, facilityId = "hospital" }) {
   );
 
   const kpis = [
-    { title: "Current Demand",   value: data ? `${data.current_demand_kwh} kW`         : null },
-    { title: "Predicted Demand", value: data ? `${data.predicted_next_hour_kwh} kW`    : null },
-    { title: "Peak Load Risk",   value: data ? data.peak_load_risk                      : null },
-    { title: "Renewable Mix",    value: data ? `${data.renewable_mix_percent}%`         : null },
+    { title: isForecasting ? "Avg Demand"  : "Current Demand",   value: data ? `${data.current_demand_kwh} kW`      : null },
+    { title: isForecasting ? "Peak Demand" : "Predicted Demand", value: data ? `${data.predicted_next_hour_kwh} kW` : null },
+    { title: "Peak Load Risk",   value: data ? data.peak_load_risk             : null },
+    { title: "Renewable Mix",    value: data ? `${data.renewable_mix_percent}%` : null },
   ];
 
   return (

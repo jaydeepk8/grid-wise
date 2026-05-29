@@ -259,7 +259,7 @@ export default function FacilityDetailPage() {
               </div>
               <ModelAccuracy facilityId={id} />
               <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); setForecastFallback({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
-                Reset to default
+                Clear upload
               </button>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function FacilityDetailPage() {
           <>
             {/* KPI cards */}
             <section className="mb-10">
-              {showLoading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+              {showLoading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} isForecasting={!isNextHour && !!forecastData} />}
             </section>
 
             {/* Chart + Insights */}
