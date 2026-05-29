@@ -38,10 +38,14 @@ def load_resources():
     model_dir = BASE_DIR / "model"
     data_dir = BASE_DIR / "data"
 
+    # Best model per facility based on benchmark (R², MAE, RMSE on 20% held-out test set):
+    #   Hospital:    XGBoost (R2 99.74%, RMSE 9.91)  vs RF (R2 99.73%, RMSE 10.22) — XGB wins on RMSE, 10x smaller
+    #   Data Center: XGBoost (R2 98.72%, MAE 15.65)  vs RF (R2 98.61%, MAE 15.98) — XGB clear winner
+    #   MNC:         RF      (R2 99.88%, MAE  5.20)  vs XGB (R2 99.85%, MAE 5.89) — RF clear winner
     facility_files = {
-        "hospital": ("hospital_energy_rf.pkl", "hospital_hourly_energy.csv", "hospital_ml_ready.csv"),
-        "data-center": ("datacenter_energy_rf.pkl", "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
-        "mnc": ("mnc_energy_rf.pkl", "mnc_hourly_energy.csv", "mnc_ml_ready.csv"),
+        "hospital":    ("hospital_energy_xgb.pkl",    "hospital_hourly_energy.csv",   "hospital_ml_ready.csv"),
+        "data-center": ("datacenter_energy_xgb.pkl",  "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
+        "mnc":         ("mnc_energy_rf.pkl",           "mnc_hourly_energy.csv",        "mnc_ml_ready.csv"),
     }
 
     for key, (model_file, hourly_file, ml_file) in facility_files.items():
@@ -66,6 +70,7 @@ def load_resources():
             "mae": round(float(mean_absolute_error(y_test, y_pred)), 2),
             "rmse": round(float(np.sqrt(mean_squared_error(y_test, y_pred))), 2),
             "accuracy_percent": round(float(r2_score(y_test, y_pred)) * 100, 2),
+            "model_type": type(models[key]).__name__,
         }
 
     print("All resources loaded successfully!")
