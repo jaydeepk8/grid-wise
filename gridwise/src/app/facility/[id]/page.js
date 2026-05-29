@@ -302,8 +302,8 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* Skeleton while uploading */}
-        {uploading && !uploadedData && (
+        {/* Skeleton placeholders — before upload or while uploading */}
+        {!uploadedData && (
           <>
             <section className="mb-10"><KPISkeleton /></section>
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
@@ -312,18 +312,6 @@ export default function FacilityDetailPage() {
             </section>
             <section className="mb-10"><RecommendationsSkeleton /></section>
           </>
-        )}
-
-        {/* Empty state — before upload */}
-        {!uploadedData && !uploading && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 bg-[#eef3ec] rounded-3xl flex items-center justify-center mb-5">
-              <span className="material-symbols-outlined text-[#4a6741] text-4xl">cloud_upload</span>
-            </div>
-            <h2 className="text-2xl font-serif text-[#2d3a2d] mb-2">Upload your energy data</h2>
-            <p className="text-slate-400 text-sm max-w-sm mb-1">Upload a CSV or Excel file with <strong>datetime</strong> and <strong>energy_kwh</strong> columns to get AI-powered predictions.</p>
-            <p className="text-slate-300 text-xs">Minimum 6 rows required</p>
-          </div>
         )}
 
         {/* Dashboard — only after upload */}
