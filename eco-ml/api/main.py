@@ -133,7 +133,7 @@ def estimate_renewable_mix(hour):
     return 45
 
 
-def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series):
+def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series, predicted_series=None):
     model = models[facility_type]
     X = pd.DataFrame(
         [[hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg]],
@@ -142,7 +142,9 @@ def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energ
     prediction = float(model.predict(X)[0])
     peak_risk = calculate_peak_risk(prediction, rolling_6h_avg)
     renewable_mix = estimate_renewable_mix(hour)
-    predicted_series = [round(a * 1.02, 2) for a in actual_series[:-1]] + [round(prediction, 2)]
+    # Use pre-computed predicted_series if provided, otherwise fall back
+    if predicted_series is None:
+        predicted_series = [round(a * 1.02, 2) for a in actual_series[:-1]] + [round(prediction, 2)]
     demand_change = ((prediction - prev_hour_energy) / prev_hour_energy) * 100
     avg_deviation = ((prediction - rolling_6h_avg) / rolling_6h_avg) * 100
 
@@ -212,7 +214,75 @@ def build_forecast(facility_type, start_dt, hours, prev_hour_energy, rolling_3h_
     peak_index = int(np.argmax(predictions))
     avg_predicted = float(np.mean(predictions))
     peak_value = float(predictions[peak_index])
-    renewable_mix = estimate_renewable_mix((start_dt + timedelta(hours=hours)).hour)
+
+    # FIX: average renewable mix across the entire forecast window, not just the end hour
+    start_naive = strip_tz(start_dt)
+    renewable_mix = round(float(np.mean([
+        estimate_renewable_mix((start_naive + timedelta(hours=i)).hour)
+        for i in range(1, hours + 1)
+    ])), 1)
+
+    # FIX: richer conditional recommendations
+    peak_pct = round(((peak_value - avg_predicted) / avg_predicted) * 100, 2)
+    recommendations = []
+    if peak_value > avg_predicted * 1.10:
+        recommendations.append({
+            "title": "Immediate Load Redistribution Required",
+            "priority": "High",
+            "impact": f"Peak demand of {round(peak_value, 2)} kWh is {peak_pct}% above forecast average — overload risk.",
+        })
+    elif peak_value > avg_predicted * 1.05:
+        recommendations.append({
+            "title": "Prepare Demand Response Strategy",
+            "priority": "Medium",
+            "impact": f"Peak demand is {peak_pct}% above forecast average. Monitor closely around {labels[peak_index]}.",
+        })
+    else:
+        recommendations.append({
+            "title": "Maintain Current Operational Strategy",
+            "priority": "Low",
+            "impact": f"Demand is within {peak_pct}% of forecast average — stable operating conditions expected.",
+        })
+    if renewable_mix < 50:
+        recommendations.append({
+            "title": "Increase Renewable Dispatch",
+            "priority": "Medium",
+            "impact": f"Average renewable mix over this window is {renewable_mix}% — consider shifting loads to daytime solar hours.",
+        })
+    elif renewable_mix > 70:
+        recommendations.append({
+            "title": "Maximize Solar Utilization",
+            "priority": "Low",
+            "impact": f"High average renewable penetration ({renewable_mix}%) — schedule high-load tasks within this window.",
+        })
+    if hours >= 168:
+        recommendations.append({
+            "title": "Weekly Load Planning",
+            "priority": "Medium" if peak_value > avg_predicted * 1.05 else "Low",
+            "impact": f"7-day forecast peaks at {labels[peak_index]} ({round(peak_value, 2)} kWh). Plan maintenance and load-shifting accordingly.",
+        })
+    elif hours >= 24:
+        recommendations.append({
+            "title": "Daily Load Scheduling",
+            "priority": "Low",
+            "impact": "Schedule high-consumption tasks during predicted off-peak hours to reduce operational costs.",
+        })
+    recommendations.append({
+        "title": "Continue Preventive Monitoring",
+        "priority": "Low",
+        "impact": "Each hourly prediction feeds the next — forecasts improve accuracy when seeded from your latest uploaded data.",
+    })
+
+    # FIX: richer insights
+    min_value = float(min(predictions))
+    min_index = int(np.argmin(predictions))
+    demand_range = round(peak_value - min_value, 2)
+    insights = [
+        f"Average predicted demand over this period: {round(avg_predicted, 2)} kWh.",
+        f"Peak demand expected at {labels[peak_index]}: {round(peak_value, 2)} kWh.",
+        f"Lowest demand expected at {labels[min_index]}: {round(min_value, 2)} kWh (range: {demand_range} kWh).",
+        f"Average renewable mix across this window: {renewable_mix}%.",
+    ]
 
     return {
         "facility": facility_type,
@@ -222,24 +292,9 @@ def build_forecast(facility_type, start_dt, hours, prev_hour_energy, rolling_3h_
         "peak_value": round(peak_value, 2),
         "avg_predicted": round(avg_predicted, 2),
         "peak_load_risk": calculate_peak_risk(peak_value, avg_predicted),
-        "renewable_mix_percent": round(renewable_mix, 1),
-        "insights": [
-            f"Average predicted demand for this period is {round(avg_predicted, 2)} kWh.",
-            f"Peak demand is expected around {labels[peak_index]} at {round(peak_value, 2)} kWh.",
-            f"Forecast horizon covers the next {hours} hour{'s' if hours != 1 else ''}.",
-        ],
-        "recommendations": [
-            {
-                "title": "Plan Load Scheduling Around Forecast Peak",
-                "priority": "High" if peak_value > avg_predicted * 1.1 else "Medium",
-                "impact": f"Peak demand is {round(((peak_value - avg_predicted) / avg_predicted) * 100, 2)}% above the forecast average.",
-            },
-            {
-                "title": "Continue Preventive Monitoring",
-                "priority": "Low",
-                "impact": "Forecast uses the latest rolling energy values and updates each hour iteratively.",
-            },
-        ],
+        "renewable_mix_percent": renewable_mix,
+        "insights": insights,
+        "recommendations": recommendations,
     }
 
 
@@ -304,14 +359,35 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     rolling_3h_avg = float(uploaded_df["energy_kwh"].tail(3).mean())
     rolling_6h_avg = float(uploaded_df["energy_kwh"].tail(6).mean())
 
-    chart_rows = uploaded_df.tail(12)
+    # Use last 12 rows for the chart; grab 18 for rolling-feature context
+    context_df = uploaded_df.tail(18).reset_index(drop=True)
+    chart_start = len(context_df) - min(12, len(context_df))
+    chart_rows = context_df.iloc[chart_start:]
     time_labels = pd.to_datetime(chart_rows["datetime"]).dt.strftime("%H:%M").tolist()
     actual_series = chart_rows["energy_kwh"].round(2).tolist()
+
+    # FIX: compute real ML predictions for every chart row (not actual * 1.02)
+    predicted_series = []
+    for idx in range(chart_start, len(context_df)):
+        row = context_df.iloc[idx]
+        r_dt = pd.to_datetime(row["datetime"])
+        r_h   = r_dt.hour
+        r_dow = r_dt.dayofweek
+        r_we  = 1 if r_dow >= 5 else 0
+        r_prev  = float(context_df["energy_kwh"].iloc[idx - 1]) if idx > 0 else float(row["energy_kwh"])
+        r_roll3 = float(context_df["energy_kwh"].iloc[max(0, idx - 3):idx].mean()) if idx > 0 else float(row["energy_kwh"])
+        r_roll6 = float(context_df["energy_kwh"].iloc[max(0, idx - 6):idx].mean()) if idx > 0 else float(row["energy_kwh"])
+        X_r = pd.DataFrame([[r_h, r_dow, r_we, r_prev, r_roll3, r_roll6]], columns=FEATURES)
+        predicted_series.append(round(float(models[facility_type].predict(X_r)[0]), 2))
 
     preview = uploaded_df.head(5)[["datetime", "energy_kwh"]].copy()
     preview["datetime"] = preview["datetime"].astype(str)
 
-    result = build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series)
+    result = build_response(
+        facility_type, hour, day_of_week, is_weekend,
+        prev_hour_energy, rolling_3h_avg, rolling_6h_avg,
+        time_labels, actual_series, predicted_series,
+    )
     result["preview"] = preview.to_dict(orient="records")
     result["total_rows"] = len(uploaded_df)
     result["source_datetime"] = str(dt)
