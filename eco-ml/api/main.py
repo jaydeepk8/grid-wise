@@ -330,25 +330,85 @@ def get_accuracy(facility_type: str):
     return accuracy_cache[facility_type]
 
 
+def detect_columns(df):
+    """
+    Auto-detect datetime and energy columns regardless of exact name.
+    Returns (datetime_col, energy_col) or (None, None) if not found.
+    """
+    cols_lower = {c.lower().strip().replace(" ", "_"): c for c in df.columns}
+
+    datetime_candidates = [
+        "datetime", "date_time", "timestamp", "time", "date", "dt",
+        "recorded_at", "created_at", "time_stamp", "period", "interval",
+        "hour", "date_hour", "reading_time", "meter_time",
+    ]
+    energy_candidates = [
+        "energy_kwh", "energy", "kwh", "kwh_consumption", "power",
+        "consumption", "load", "demand", "usage", "electricity",
+        "wh", "watts", "kw", "power_kw", "energy_consumption",
+        "power_consumption", "electric_load", "total_kwh", "net_kwh",
+        "gross_kwh", "active_power", "active_energy", "meter_reading",
+        "reading", "value", "energy_wh",
+    ]
+
+    dt_col = next((cols_lower[c] for c in datetime_candidates if c in cols_lower), None)
+    if not dt_col:
+        # Fuzzy: any column whose name contains date/time/stamp
+        dt_col = next(
+            (orig for lower, orig in cols_lower.items() if any(k in lower for k in ("date", "time", "stamp", "period"))),
+            None,
+        )
+
+    energy_col = next((cols_lower[c] for c in energy_candidates if c in cols_lower), None)
+    if not energy_col:
+        # Fuzzy: any column whose name contains energy-related keyword
+        energy_col = next(
+            (orig for lower, orig in cols_lower.items() if any(k in lower for k in ("kwh", "energy", "power", "consump", "demand", "load", "usage", "watt", "kw", "reading", "value"))
+             and orig != dt_col),
+            None,
+        )
+
+    return dt_col, energy_col
+
+
 @app.post("/upload-predict")
 async def upload_and_predict(file: UploadFile = File(...), facility_type: str = "hospital"):
     contents = await file.read()
 
+    # Parse without forcing column names — auto-detect after reading
     try:
         if file.filename.endswith(".csv"):
-            uploaded_df = pd.read_csv(io.BytesIO(contents), parse_dates=["datetime"])
+            uploaded_df = pd.read_csv(io.BytesIO(contents))
         elif file.filename.endswith((".xlsx", ".xls")):
-            uploaded_df = pd.read_excel(io.BytesIO(contents), parse_dates=["datetime"])
+            uploaded_df = pd.read_excel(io.BytesIO(contents))
         else:
             return {"error": "Unsupported format. Please upload CSV or Excel file."}
     except Exception as e:
         return {"error": f"Failed to parse file: {str(e)}"}
 
-    if "datetime" not in uploaded_df.columns or "energy_kwh" not in uploaded_df.columns:
-        return {"error": "File must have 'datetime' and 'energy_kwh' columns."}
+    # Smart column detection
+    dt_col, energy_col = detect_columns(uploaded_df)
+    if not dt_col:
+        found = list(uploaded_df.columns)
+        return {"error": f"Could not find a datetime column. Found columns: {found}. Please include a column named 'datetime', 'timestamp', 'time', or 'date'."}
+    if not energy_col:
+        found = list(uploaded_df.columns)
+        return {"error": f"Could not find an energy column. Found columns: {found}. Please include a column named 'energy_kwh', 'kwh', 'power', 'consumption', or 'demand'."}
+
+    # Rename to standard names
+    mapped_columns = None
+    if dt_col != "datetime" or energy_col != "energy_kwh":
+        mapped_columns = {"datetime": dt_col, "energy_kwh": energy_col}
+        uploaded_df = uploaded_df.rename(columns={dt_col: "datetime", energy_col: "energy_kwh"})
+
+    # Parse datetime column flexibly
+    uploaded_df["datetime"] = pd.to_datetime(uploaded_df["datetime"], infer_datetime_format=True, errors="coerce")
+    uploaded_df = uploaded_df.dropna(subset=["datetime"])
+    uploaded_df["energy_kwh"] = pd.to_numeric(uploaded_df["energy_kwh"], errors="coerce")
+    uploaded_df = uploaded_df.dropna(subset=["energy_kwh"])
 
     if len(uploaded_df) < 6:
-        return {"error": "Minimum 6 rows of data required for prediction."}
+        return {"error": "Minimum 6 valid rows of data required for prediction."}
 
     if facility_type not in models:
         facility_type = "hospital"
@@ -399,6 +459,8 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     result["prev_hour_energy"] = round(prev_hour_energy, 2)
     result["rolling_3h_avg"] = round(rolling_3h_avg, 2)
     result["rolling_6h_avg"] = round(rolling_6h_avg, 2)
+    if mapped_columns:
+        result["mapped_columns"] = mapped_columns
 
     return result
 

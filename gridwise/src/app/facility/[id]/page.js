@@ -247,23 +247,34 @@ export default function FacilityDetailPage() {
 
         {/* Uploaded data banner */}
         {uploadedData && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-6">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-white text-sm">check_circle</span>
-              <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs text-white/80">
-                <span className={`w-2 h-2 rounded-full bg-white ${liveRefreshing ? "animate-ping" : "animate-pulse"}`} />
-                {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
+          <div className="flex flex-col gap-2 bg-[#4a6741] rounded-2xl px-4 md:px-6 py-4 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-white text-sm">check_circle</span>
+                <p className="text-white text-sm font-medium">Showing predictions from your uploaded data ({uploadedData.total_rows} rows)</p>
               </div>
-              <ModelAccuracy facilityId={id} />
-              <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); setForecastFallback({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
-                Clear upload
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-white/80">
+                  <span className={`w-2 h-2 rounded-full bg-white ${liveRefreshing ? "animate-ping" : "animate-pulse"}`} />
+                  {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
+                </div>
+                <ModelAccuracy facilityId={id} />
+                <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); setForecastFallback({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
+                  Clear upload
+                </button>
+              </div>
             </div>
+            {uploadedData.mapped_columns && (
+              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 w-fit">
+                <span className="material-symbols-outlined text-white/70 text-sm">auto_fix_high</span>
+                <p className="text-xs text-white/80">
+                  Auto-mapped columns: <span className="font-semibold text-white">{uploadedData.mapped_columns.datetime}</span> → datetime &nbsp;·&nbsp; <span className="font-semibold text-white">{uploadedData.mapped_columns.energy_kwh}</span> → energy_kwh
+                </p>
+              </div>
+            )}
           </div>
         )}
+
 
         {/* Time horizon tabs - only after upload */}
         {uploadedData && facility.hasData && (
