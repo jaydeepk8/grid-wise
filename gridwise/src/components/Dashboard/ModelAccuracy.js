@@ -26,16 +26,11 @@ export default function ModelAccuracy({ facilityId = "hospital" }) {
 
   const getLabel = (r2) => r2 >= 0.9 ? "Excellent" : r2 >= 0.75 ? "Good" : "Fair";
 
-  // Map sklearn class name to short display label
-  const modelLabel = accuracy.model_type?.includes("XGB") ? "XGBoost"
-    : accuracy.model_type?.includes("RandomForest") ? "Random Forest"
-    : accuracy.model_type ?? "ML";
-
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-white/15 text-white`}>
+    <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-white/15 text-white">
       <span className="material-symbols-outlined text-base">model_training</span>
       <span className="font-bold">{accuracy.accuracy_percent}%</span>
-      <span className="text-xs text-white/70">{getLabel(accuracy.r2)} · {modelLabel}</span>
+      <span className="text-xs text-white/70">{getLabel(accuracy.r2)}</span>
     </div>
   );
 }
