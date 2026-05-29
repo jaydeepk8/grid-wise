@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 
-export default function FileUpload({ onDataLoaded, onFileReady, facilityType = "hospital" }) {
+export default function FileUpload({ onDataLoaded, onFileReady, onLoadingChange, facilityType = "hospital" }) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
@@ -31,6 +31,7 @@ export default function FileUpload({ onDataLoaded, onFileReady, facilityType = "
   async function handlePredict() {
     if (!file) return;
     setLoading(true);
+    if (onLoadingChange) onLoadingChange(true);
     setError(null);
     const selectedFile = file;
 
@@ -59,6 +60,7 @@ export default function FileUpload({ onDataLoaded, onFileReady, facilityType = "
       setError("Failed to connect to server. Make sure the backend is running.");
     } finally {
       setLoading(false);
+      if (onLoadingChange) onLoadingChange(false);
     }
   }
 

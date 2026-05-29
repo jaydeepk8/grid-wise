@@ -115,6 +115,7 @@ export default function FacilityDetailPage() {
   const [forecastCache, setForecastCache]     = useState({});
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastFallback, setForecastFallback] = useState({});
+  const [uploading, setUploading]             = useState(false);
 
   const refreshLive = useCallback(async () => {
     if (!uploadedFile || !facilityType) return;
@@ -239,6 +240,7 @@ export default function FacilityDetailPage() {
               facilityType={facility.facilityType}
               onDataLoaded={(data) => { setUploadedData(data); setActiveTab(0); setForecastCache({}); setForecastFallback({}); }}
               onFileReady={(f) => setUploadedFile(f)}
+              onLoadingChange={(v) => setUploading(v)}
             />
           )}
         </div>
@@ -300,8 +302,20 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
+        {/* Skeleton while uploading */}
+        {uploading && !uploadedData && (
+          <>
+            <section className="mb-10"><KPISkeleton /></section>
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+              <div className="lg:col-span-2"><ChartSkeleton /></div>
+              <InsightsSkeleton />
+            </section>
+            <section className="mb-10"><RecommendationsSkeleton /></section>
+          </>
+        )}
+
         {/* Empty state — before upload */}
-        {!uploadedData && (
+        {!uploadedData && !uploading && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-20 h-20 bg-[#eef3ec] rounded-3xl flex items-center justify-center mb-5">
               <span className="material-symbols-outlined text-[#4a6741] text-4xl">cloud_upload</span>
