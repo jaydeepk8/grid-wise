@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -107,30 +107,14 @@ export default function FacilityDetailPage() {
   const facilityType = facility?.facilityType;
   const facilityName = facility?.name;
   const hasFacilityData = facility?.hasData;
-  const [activeTab, setActiveTab]           = useState(0);
-  const [uploadedData, setUploadedData]     = useState(null);
-  const [uploadedFile, setUploadedFile]     = useState(null);
-  const [liveRefreshing, setLiveRefreshing] = useState(false);
-  const liveIntervalRef                     = useRef(null);
-  const [defaultData, setDefaultData]       = useState(null);
-  const [loading, setLoading]               = useState(true);
-  const [forecastCache, setForecastCache]   = useState({});
+  const [activeTab, setActiveTab]             = useState(0);
+  const [uploadedData, setUploadedData]       = useState(null);
+  const [uploadedFile, setUploadedFile]       = useState(null);
+  const [liveRefreshing, setLiveRefreshing]   = useState(false);
+  const liveIntervalRef                       = useRef(null);
+  const [forecastCache, setForecastCache]     = useState({});
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastFallback, setForecastFallback] = useState({});
-
-  useEffect(() => {
-    if (!hasFacilityData) { setLoading(false); return; }
-    setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ datetime: new Date().toISOString(), facility_type: facilityType }),
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.current_demand_kwh) { setDefaultData(data); document.title = `${facilityName} | GridWise`; } })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [facilityName, facilityType, hasFacilityData]);
 
   const refreshLive = useCallback(async () => {
     if (!uploadedFile || !facilityType) return;
@@ -219,13 +203,12 @@ export default function FacilityDetailPage() {
   }
 
   const reportFacility = { name: facility.name, category: facility.category, status: facility.status, facilityType: facility.facilityType };
-  const baseData    = uploadedData || defaultData;
   const isNextHour  = activeTab === 0;
   const activeHours = TABS[activeTab].hours;
   const forecast    = forecastCache[activeHours];
-  const forecastData = buildForecastData(forecast, baseData);
-  const activeData   = isNextHour ? baseData : (forecastData ?? baseData);
-  const showLoading  = loading || (!isNextHour && forecastLoading && !forecast);
+  const forecastData = buildForecastData(forecast, uploadedData);
+  const activeData   = isNextHour ? uploadedData : (forecastData ?? uploadedData);
+  const showLoading  = !isNextHour && forecastLoading && !forecast;
 
   return (
     <div className="bg-[#f1f4f1] min-h-screen pt-32">
@@ -317,33 +300,48 @@ export default function FacilityDetailPage() {
           </div>
         )}
 
-        {/* KPI cards */}
-        <section className="mb-10">
-          {showLoading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
-        </section>
-
-        {/* Chart + Insights */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          <div className="lg:col-span-2">
-            {showLoading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+        {/* Empty state — before upload */}
+        {!uploadedData && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-20 h-20 bg-[#eef3ec] rounded-3xl flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-[#4a6741] text-4xl">cloud_upload</span>
+            </div>
+            <h2 className="text-2xl font-serif text-[#2d3a2d] mb-2">Upload your energy data</h2>
+            <p className="text-slate-400 text-sm max-w-sm mb-1">Upload a CSV or Excel file with <strong>datetime</strong> and <strong>energy_kwh</strong> columns to get AI-powered predictions.</p>
+            <p className="text-slate-300 text-xs">Minimum 6 rows required</p>
           </div>
-          {showLoading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
-        </section>
+        )}
 
-        {/* Recommendations */}
-        <section className="mb-10">
-          {showLoading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
-        </section>
+        {/* Dashboard — only after upload */}
+        {uploadedData && (
+          <>
+            {/* KPI cards */}
+            <section className="mb-10">
+              {showLoading ? <KPISkeleton /> : <KPI data={activeData} facilityId={id} />}
+            </section>
 
-        {/* Download Report */}
-        {facility.hasData && activeData && (
+            {/* Chart + Insights */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+              <div className="lg:col-span-2">
+                {showLoading ? <ChartSkeleton /> : <EnergyChart data={activeData} facilityId={id} />}
+              </div>
+              {showLoading ? <InsightsSkeleton /> : <AIInsights data={activeData} facilityId={id} />}
+            </section>
+
+            {/* Recommendations */}
+            <section className="mb-10">
+              {showLoading ? <RecommendationsSkeleton /> : <AIRecommendations data={activeData} facilityId={id} />}
+            </section>
+          </>
+        )}
+
+        {/* Download Report — only after upload */}
+        {uploadedData && activeData && (
           <section className="mb-16">
             <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
               <div>
                 <h3 className="text-lg font-serif text-[#2d3a2d] mb-1">Energy Prediction Report</h3>
-                <p className="text-sm text-slate-400">
-                  {uploadedData ? "Download PDF report based on your uploaded data." : "Download a full PDF report with predictions, insights and recommendations."}
-                </p>
+                <p className="text-sm text-slate-400">Download PDF report based on your uploaded data.</p>
               </div>
               <button
                 onClick={() => generateReport(reportFacility, activeData)}
