@@ -346,7 +346,7 @@ export default function FacilityDetailPage() {
                 <p className="text-sm text-slate-400">Download PDF report based on your uploaded data.</p>
               </div>
               <button
-                onClick={() => generateReport(reportFacility, activeData)}
+                onClick={() => generateReport(reportFacility, uploadedData, forecastCache)}
                 className="flex items-center gap-2 bg-[#4a6741] text-white text-xs font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl hover:bg-[#2d3a2d] transition-all duration-300 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-sm">download</span>

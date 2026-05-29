@@ -1,35 +1,23 @@
-export async function generateReport(facility, uploadedData = null) {
+export async function generateReport(facility, uploadedData = null, forecastCache = {}) {
   const { jsPDF } = await import("jspdf");
 
-  let data;
-
-  if (uploadedData) {
-    data = uploadedData;
-  } else {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        datetime: new Date().toISOString(),
-        facility_type: facility.facilityType || "hospital",
-      }),
-    });
-    data = await res.json();
-  }
+  const data = uploadedData;
+  if (!data) return;
 
   // Fetch model accuracy
   let accuracyText = "N/A";
   try {
     const accRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/accuracy/${facility.facilityType || "hospital"}`);
     const accData = await accRes.json();
-    accuracyText = `${accData.accuracy_percent}% (MAE: ${accData.mae} kWh, MAPE: ${accData.mape}%)`;
+    accuracyText = `${accData.accuracy_percent}% (MAE: ${accData.mae} kWh)`;
   } catch (_) {}
 
   const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageWidth  = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  function addPageHeader() {
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function addPageHeader(subtitle = "Energy Prediction Report") {
     doc.setFillColor(45, 74, 45);
     doc.rect(0, 0, pageWidth, 40, "F");
     doc.setTextColor(255, 255, 255);
@@ -38,7 +26,7 @@ export async function generateReport(facility, uploadedData = null) {
     doc.text("GridWise", 14, 18);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Energy Prediction Report", 14, 28);
+    doc.text(subtitle, 14, 28);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -60,6 +48,15 @@ export async function generateReport(facility, uploadedData = null) {
     return y + 10;
   }
 
+  function checkNewPage(y, needed = 20) {
+    if (y + needed > pageHeight - 20) {
+      doc.addPage();
+      addPageHeader();
+      return 55;
+    }
+    return y;
+  }
+
   function addFooters() {
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -74,6 +71,122 @@ export async function generateReport(facility, uploadedData = null) {
     }
   }
 
+  function addForecastSummaryKPIs(forecast, y) {
+    const kpis = [
+      ["Average Demand",  `${forecast.avg_predicted} kWh`],
+      ["Peak Demand",     `${forecast.peak_value} kWh`],
+      ["Peak Hour",       forecast.peak_hour],
+      ["Peak Load Risk",  forecast.peak_load_risk],
+      ["Renewable Mix",   `${forecast.renewable_mix_percent}%`],
+    ];
+    kpis.forEach(([label, value]) => {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(label, 18, y);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 45, 30);
+      doc.text(String(value), 130, y);
+      y += 10;
+    });
+    return y;
+  }
+
+  function addForecastInsights(forecast, y) {
+    (forecast.insights || []).forEach((insight) => {
+      y = checkNewPage(y, 14);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      const lines = doc.splitTextToSize(`• ${insight}`, pageWidth - 28);
+      doc.text(lines, 14, y);
+      y += lines.length * 6 + 3;
+    });
+    return y;
+  }
+
+  function addForecastRecommendations(forecast, y) {
+    (forecast.recommendations || []).forEach((rec) => {
+      y = checkNewPage(y, 20);
+      const priorityColors = { High: [180, 30, 30], Medium: [180, 120, 0], Low: [45, 74, 45] };
+      const [r, g, b] = priorityColors[rec.priority] || [45, 74, 45];
+      doc.setTextColor(r, g, b);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`[${rec.priority}] ${rec.title}`, 14, y);
+      y += 7;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const lines = doc.splitTextToSize(rec.impact, pageWidth - 28);
+      doc.text(lines, 14, y);
+      y += lines.length * 5 + 6;
+    });
+    return y;
+  }
+
+  // Adds a forecast data table, sampling rows if too many (7d = 168 rows)
+  function addForecastTable(forecast, y, hours) {
+    const labels = forecast.forecast_labels || [];
+    const values = forecast.forecast_values || [];
+
+    // For 7-day, group into daily summaries
+    if (hours > 24) {
+      // Table header
+      doc.setFillColor(45, 74, 45);
+      doc.rect(14, y - 5, pageWidth - 28, 9, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("Period", 18, y);
+      doc.text("Avg Demand (kWh)", 80, y);
+      doc.text("Peak Demand (kWh)", 140, y);
+      y += 10;
+
+      // Group into 24-hour buckets
+      const daySize = 24;
+      const dayCount = Math.ceil(labels.length / daySize);
+      for (let d = 0; d < dayCount; d++) {
+        y = checkNewPage(y, 10);
+        const slice = values.slice(d * daySize, (d + 1) * daySize);
+        const avg   = (slice.reduce((s, v) => s + v, 0) / slice.length).toFixed(1);
+        const peak  = Math.max(...slice).toFixed(1);
+        const label = labels[d * daySize]?.split(" ").slice(0, 2).join(" ") || `Day ${d + 1}`;
+
+        if (d % 2 === 0) { doc.setFillColor(248, 252, 248); doc.rect(14, y - 5, pageWidth - 28, 8, "F"); }
+        doc.setTextColor(60, 60, 60);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text(label, 18, y);
+        doc.text(String(avg), 80, y);
+        doc.text(String(peak), 140, y);
+        y += 9;
+      }
+    } else {
+      // Show every row
+      doc.setFillColor(45, 74, 45);
+      doc.rect(14, y - 5, pageWidth - 28, 9, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("Hour", 18, y);
+      doc.text("Predicted Demand (kWh)", 80, y);
+      y += 10;
+
+      labels.forEach((label, i) => {
+        y = checkNewPage(y, 10);
+        if (i % 2 === 0) { doc.setFillColor(248, 252, 248); doc.rect(14, y - 5, pageWidth - 28, 8, "F"); }
+        doc.setTextColor(60, 60, 60);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text(label, 18, y);
+        doc.text(String(values[i]), 80, y);
+        y += 9;
+      });
+    }
+    return y;
+  }
+
+  // ── Page 1: Facility summary + Next-Hour data ──────────────────────────────
   addPageHeader();
   let y = 55;
 
@@ -87,28 +200,18 @@ export async function generateReport(facility, uploadedData = null) {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text(facility.category.toUpperCase(), 14, y);
-  y += 5;
-
-  doc.setTextColor(100, 130, 100);
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  doc.text(
-    "Report covers last 12 hours of actual consumption + next-hour prediction.",
-    14, y
-  );
   y += 10;
 
   y = addDivider(y);
-  y = addSectionTitle("Energy Summary", y);
+  y = addSectionTitle("Next-Hour Energy Summary", y);
 
   const kpis = [
-    ["Current Demand", `${data.current_demand_kwh} kWh`],
+    ["Current Demand",           `${data.current_demand_kwh} kWh`],
     ["Predicted Next-Hour Demand", `${data.predicted_next_hour_kwh} kWh`],
-    ["Peak Load Risk", data.peak_load_risk],
-    ["Renewable Mix", `${data.renewable_mix_percent}%`],
-    ["Model Accuracy", accuracyText],
+    ["Peak Load Risk",            data.peak_load_risk],
+    ["Renewable Mix",             `${data.renewable_mix_percent}%`],
+    ["Model Accuracy",            accuracyText],
   ];
-
   kpis.forEach(([label, value]) => {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
@@ -116,15 +219,15 @@ export async function generateReport(facility, uploadedData = null) {
     doc.text(label, 18, y);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 45, 30);
-    doc.text(value, 130, y);
+    doc.text(String(value), 130, y);
     y += 10;
   });
 
   y += 4;
   y = addDivider(y);
-  y = addSectionTitle("AI Insights", y);
-
+  y = addSectionTitle("AI Insights (Next Hour)", y);
   data.insights.forEach((insight) => {
+    y = checkNewPage(y, 14);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60, 60, 60);
@@ -135,14 +238,9 @@ export async function generateReport(facility, uploadedData = null) {
 
   y += 4;
   y = addDivider(y);
-  y = addSectionTitle("AI Recommendations", y);
-
+  y = addSectionTitle("AI Recommendations (Next Hour)", y);
   data.recommendations.forEach((rec) => {
-    if (y > 250) {
-      doc.addPage();
-      addPageHeader();
-      y = 55;
-    }
+    y = checkNewPage(y, 20);
     const priorityColors = { High: [180, 30, 30], Medium: [180, 120, 0], Low: [45, 74, 45] };
     const [r, g, b] = priorityColors[rec.priority] || [45, 74, 45];
     doc.setTextColor(r, g, b);
@@ -157,16 +255,16 @@ export async function generateReport(facility, uploadedData = null) {
     y += lines.length * 5 + 6;
   });
 
+  // ── Page 2: Historical data table ─────────────────────────────────────────
   doc.addPage();
   addPageHeader();
   y = 55;
-
-  y = addSectionTitle("Historical Energy Data (Last 12 Hours)", y);
+  y = addSectionTitle("Uploaded Data — Last 12 Hours", y);
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(120, 120, 120);
-  doc.text("Last row shows next-hour prediction.", 14, y);
+  doc.text("Based on your uploaded CSV file.", 14, y);
   y += 10;
 
   doc.setFillColor(45, 74, 45);
@@ -180,36 +278,51 @@ export async function generateReport(facility, uploadedData = null) {
   y += 10;
 
   data.chart.labels.forEach((label, i) => {
-    if (i % 2 === 0) {
-      doc.setFillColor(248, 252, 248);
-      doc.rect(14, y - 5, pageWidth - 28, 8, "F");
-    }
+    y = checkNewPage(y, 10);
+    if (i % 2 === 0) { doc.setFillColor(248, 252, 248); doc.rect(14, y - 5, pageWidth - 28, 8, "F"); }
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text(label, 18, y);
-    doc.text(String(data.chart.actual[i]), 80, y);
-    doc.text(String(data.chart.predicted[i]), 140, y);
+    doc.text(String(data.chart.actual[i] ?? "—"), 80, y);
+    doc.text(String(data.chart.predicted[i] ?? "—"), 140, y);
     y += 9;
   });
 
-  const nextHour = new Date();
-  nextHour.setHours(nextHour.getHours() + 1);
-  const nextLabel = nextHour.toTimeString().slice(0, 5);
+  // ── Forecast pages: 12h, 24h, 7d ──────────────────────────────────────────
+  const horizons = [
+    { hours: 12,  label: "12-Hour Forecast" },
+    { hours: 24,  label: "24-Hour Forecast" },
+    { hours: 168, label: "7-Day Forecast"   },
+  ];
 
-  doc.setFillColor(220, 240, 220);
-  doc.rect(14, y - 5, pageWidth - 28, 8, "F");
-  doc.setTextColor(45, 74, 45);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(`${nextLabel} (Next Hour)`, 18, y);
-  doc.text("—", 80, y);
-  doc.text(String(data.predicted_next_hour_kwh), 140, y);
-  y += 12;
+  horizons.forEach(({ hours, label }) => {
+    const forecast = forecastCache[hours];
+    if (!forecast?.forecast_labels?.length) return;
 
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor(120, 120, 120);
+    doc.addPage();
+    addPageHeader(label);
+    y = 55;
+
+    y = addSectionTitle(`${label} — Summary`, y);
+    y = addForecastSummaryKPIs(forecast, y);
+
+    y += 4;
+    y = addDivider(y);
+    y = addSectionTitle(`${label} — AI Insights`, y);
+    y = addForecastInsights(forecast, y);
+
+    y += 4;
+    y = addDivider(y);
+    y = addSectionTitle(`${label} — AI Recommendations`, y);
+    y = addForecastRecommendations(forecast, y);
+
+    y += 4;
+    y = checkNewPage(y, 30);
+    y = addDivider(y);
+    y = addSectionTitle(`${label} — Forecast Data${hours > 24 ? " (Daily Summary)" : ""}`, y);
+    y = addForecastTable(forecast, y, hours);
+  });
 
   addFooters();
   doc.save(`GridWise_${facility.name.replace(/\s+/g, "_")}_Report.pdf`);
