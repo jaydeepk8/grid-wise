@@ -30,7 +30,7 @@ export async function generateReport(facility, uploadedData = null, forecastCach
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text(`Status: ${facility.status}`, pageWidth - 50, 28);
+    if (facility.status) doc.text(`Status: ${facility.status}`, pageWidth - 50, 28);
   }
 
   function addDivider(y) {
