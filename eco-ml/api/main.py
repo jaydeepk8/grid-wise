@@ -434,9 +434,17 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     contents = await file.read()
 
     # Parse without forcing column names — auto-detect after reading
+    # Try multiple encodings: UTF-8 → Latin-1 → cp1252 (covers most real-world files)
     try:
         if file.filename.endswith(".csv"):
-            uploaded_df = pd.read_csv(io.BytesIO(contents))
+            for encoding in ("utf-8", "latin-1", "cp1252", "utf-8-sig"):
+                try:
+                    uploaded_df = pd.read_csv(io.BytesIO(contents), encoding=encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                return {"error": "Could not decode file. Please save your CSV as UTF-8 and try again."}
         elif file.filename.endswith((".xlsx", ".xls")):
             uploaded_df = pd.read_excel(io.BytesIO(contents))
         else:
