@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from xgboost import XGBRegressor
 import io
 
 app = FastAPI(title="GridWise Energy Prediction API")
@@ -28,6 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 models = {}
 datasets = {}
 accuracy_cache = {}
+custom_models = {}   # facility_type -> model trained on user's uploaded data
 FEATURES = ["hour", "day_of_week", "is_weekend", "prev_hour_energy", "rolling_3h_avg", "rolling_6h_avg"]
 
 @app.on_event("startup")
@@ -138,8 +140,64 @@ def estimate_renewable_mix(hour):
     return 45
 
 
-def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series, predicted_series=None):
-    model = models[facility_type]
+def train_on_upload(df: pd.DataFrame):
+    """
+    Train a fresh XGBoost model on the user's uploaded data.
+    Returns (model, accuracy_dict) or (None, None) if not enough data.
+    Uses chronological 80/20 split — correct for time series.
+    """
+    work = df.copy().sort_values("datetime").reset_index(drop=True)
+    work["hour"]             = pd.to_datetime(work["datetime"]).dt.hour
+    work["day_of_week"]      = pd.to_datetime(work["datetime"]).dt.dayofweek
+    work["is_weekend"]       = (work["day_of_week"] >= 5).astype(int)
+    work["prev_hour_energy"] = work["energy_kwh"].shift(1)
+    work["rolling_3h_avg"]   = work["energy_kwh"].rolling(3).mean()
+    work["rolling_6h_avg"]   = work["energy_kwh"].rolling(6).mean()
+    work["target_next_hour"] = work["energy_kwh"].shift(-1)
+    work = work.dropna().reset_index(drop=True)
+
+    if len(work) < 10:
+        return None, None   # Fall back to pre-trained model
+
+    X = work[FEATURES]
+    y = work["target_next_hour"]
+
+    # Chronological split — never shuffle time-series data
+    split = max(1, int(len(work) * 0.8))
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
+
+    model = XGBRegressor(
+        n_estimators=300,
+        learning_rate=0.08,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        n_jobs=-1,
+        verbosity=0,
+    )
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+    r2     = float(r2_score(y_test, y_pred))
+    mae    = float(mean_absolute_error(y_test, y_pred))
+    rmse   = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+
+    accuracy = {
+        "r2":               round(r2, 4),
+        "mae":              round(mae, 2),
+        "rmse":             round(rmse, 2),
+        "accuracy_percent": round(max(0.0, r2) * 100, 2),
+        "model_type":       "XGBRegressor",
+        "trained_on_rows":  len(work),
+        "source":           "your_data",
+    }
+    return model, accuracy
+
+
+def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, time_labels, actual_series, predicted_series=None, custom_model=None):
+    model = custom_model if custom_model is not None else models[facility_type]
     X = pd.DataFrame(
         [[hour, day_of_week, is_weekend, prev_hour_energy, rolling_3h_avg, rolling_6h_avg]],
         columns=FEATURES,
@@ -188,8 +246,8 @@ def build_response(facility_type, hour, day_of_week, is_weekend, prev_hour_energ
     }
 
 
-def build_forecast(facility_type, start_dt, hours, prev_hour_energy, rolling_3h_avg, rolling_6h_avg):
-    model = models[facility_type]
+def build_forecast(facility_type, start_dt, hours, prev_hour_energy, rolling_3h_avg, rolling_6h_avg, custom_model=None):
+    model = custom_model if custom_model is not None else models[facility_type]
     hours = max(1, min(int(hours), 168))
     current_dt = strip_tz(start_dt)
     recent_values = [prev_hour_energy] * 6
@@ -414,6 +472,20 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
         facility_type = "hospital"
 
     uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
+
+    # ── Auto-retrain on user's real data ──────────────────────────────────────
+    custom_model, upload_accuracy = train_on_upload(uploaded_df)
+    if custom_model is not None:
+        # Store so /forecast can also use this model
+        custom_models[facility_type] = custom_model
+        active_model = custom_model
+    else:
+        # Not enough data — fall back to pre-trained
+        custom_models.pop(facility_type, None)
+        active_model = models[facility_type]
+        upload_accuracy = None
+    # ─────────────────────────────────────────────────────────────────────────
+
     last_row = uploaded_df.iloc[-1]
     dt = pd.to_datetime(last_row["datetime"])
     hour = dt.hour
@@ -424,26 +496,26 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
     rolling_3h_avg = float(uploaded_df["energy_kwh"].tail(3).mean())
     rolling_6h_avg = float(uploaded_df["energy_kwh"].tail(6).mean())
 
-    # Use last 12 rows for the chart; grab 18 for rolling-feature context
+    # Use last 12 rows for chart; grab 18 for rolling-feature context
     context_df = uploaded_df.tail(18).reset_index(drop=True)
     chart_start = len(context_df) - min(12, len(context_df))
     chart_rows = context_df.iloc[chart_start:]
     time_labels = pd.to_datetime(chart_rows["datetime"]).dt.strftime("%H:%M").tolist()
     actual_series = chart_rows["energy_kwh"].round(2).tolist()
 
-    # FIX: compute real ML predictions for every chart row (not actual * 1.02)
+    # Real ML predictions for every chart row using the active model
     predicted_series = []
     for idx in range(chart_start, len(context_df)):
         row = context_df.iloc[idx]
-        r_dt = pd.to_datetime(row["datetime"])
-        r_h   = r_dt.hour
-        r_dow = r_dt.dayofweek
-        r_we  = 1 if r_dow >= 5 else 0
+        r_dt   = pd.to_datetime(row["datetime"])
+        r_h    = r_dt.hour
+        r_dow  = r_dt.dayofweek
+        r_we   = 1 if r_dow >= 5 else 0
         r_prev  = float(context_df["energy_kwh"].iloc[idx - 1]) if idx > 0 else float(row["energy_kwh"])
         r_roll3 = float(context_df["energy_kwh"].iloc[max(0, idx - 3):idx].mean()) if idx > 0 else float(row["energy_kwh"])
         r_roll6 = float(context_df["energy_kwh"].iloc[max(0, idx - 6):idx].mean()) if idx > 0 else float(row["energy_kwh"])
         X_r = pd.DataFrame([[r_h, r_dow, r_we, r_prev, r_roll3, r_roll6]], columns=FEATURES)
-        predicted_series.append(round(float(models[facility_type].predict(X_r)[0]), 2))
+        predicted_series.append(round(float(active_model.predict(X_r)[0]), 2))
 
     preview = uploaded_df.head(5)[["datetime", "energy_kwh"]].copy()
     preview["datetime"] = preview["datetime"].astype(str)
@@ -452,15 +524,18 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
         facility_type, hour, day_of_week, is_weekend,
         prev_hour_energy, rolling_3h_avg, rolling_6h_avg,
         time_labels, actual_series, predicted_series,
+        custom_model=active_model,
     )
-    result["preview"] = preview.to_dict(orient="records")
-    result["total_rows"] = len(uploaded_df)
-    result["source_datetime"] = str(dt)
+    result["preview"]          = preview.to_dict(orient="records")
+    result["total_rows"]       = len(uploaded_df)
+    result["source_datetime"]  = str(dt)
     result["prev_hour_energy"] = round(prev_hour_energy, 2)
-    result["rolling_3h_avg"] = round(rolling_3h_avg, 2)
-    result["rolling_6h_avg"] = round(rolling_6h_avg, 2)
+    result["rolling_3h_avg"]   = round(rolling_3h_avg, 2)
+    result["rolling_6h_avg"]   = round(rolling_6h_avg, 2)
     if mapped_columns:
         result["mapped_columns"] = mapped_columns
+    if upload_accuracy:
+        result["upload_accuracy"] = upload_accuracy
 
     return result
 
@@ -485,6 +560,7 @@ def forecast_energy(data: ForecastInput):
         prev_hour_energy,
         rolling_3h_avg,
         rolling_6h_avg,
+        custom_model=custom_models.get(facility_type),  # use model trained on user's data if available
     )
 
 

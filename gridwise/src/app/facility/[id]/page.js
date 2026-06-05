@@ -258,7 +258,7 @@ export default function FacilityDetailPage() {
                   <span className={`w-2 h-2 rounded-full bg-white ${liveRefreshing ? "animate-ping" : "animate-pulse"}`} />
                   {liveRefreshing ? "Refreshing..." : "Live - updates every 30s"}
                 </div>
-                <ModelAccuracy facilityId={id} />
+                <ModelAccuracy facilityId={id} uploadAccuracy={uploadedData.upload_accuracy ?? null} />
                 <button onClick={() => { setUploadedData(null); setUploadedFile(null); setActiveTab(0); setForecastCache({}); setForecastFallback({}); clearInterval(liveIntervalRef.current); }} className="text-white/70 hover:text-white text-xs underline transition">
                   Clear upload
                 </button>
