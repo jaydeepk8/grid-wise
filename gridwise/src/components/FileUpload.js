@@ -92,7 +92,17 @@ export default function FileUpload({ onDataLoaded, onFileReady, onLoadingChange,
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const res  = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-predict?facility_type=${facilityType}`, { method: "POST", body: formData });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      console.log("[GridWise] Uploading to:", `${apiUrl}/upload-predict?facility_type=${facilityType}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout for Render cold start + retrain
+      const res  = await fetch(`${apiUrl}/upload-predict?facility_type=${facilityType}`, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      console.log("[GridWise] Response status:", res.status);
       const data = await res.json();
       if (data.error) { setError(data.error); setLoading(false); if (onLoadingChange) onLoadingChange(false); return; }
       onDataLoaded(data);
@@ -100,8 +110,12 @@ export default function FileUpload({ onDataLoaded, onFileReady, onLoadingChange,
       setShowModal(false);
       setShowSample(false);
       setFile(null);
-    } catch {
-      setError("Failed to connect to server. Make sure the backend is running.");
+    } catch (err) {
+      console.error("[GridWise] Upload error:", err);
+      const msg = err.name === "AbortError"
+        ? "Request timed out. The server may be starting up — please try again in 30 seconds."
+        : `Failed to connect: ${err.message}. Check browser console for details.`;
+      setError(msg);
     } finally {
       setLoading(false);
       if (onLoadingChange) onLoadingChange(false);
