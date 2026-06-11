@@ -10,6 +10,7 @@ from typing import Optional
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import io
+import traceback
 
 app = FastAPI(title="GridWise Energy Prediction API")
 
@@ -165,13 +166,13 @@ def train_on_upload(df: pd.DataFrame):
     y_train, y_test = y.iloc[:split], y.iloc[split:]
 
     model = XGBRegressor(
-        n_estimators=300,
+        n_estimators=100,
         learning_rate=0.08,
-        max_depth=6,
+        max_depth=5,
         subsample=0.8,
         colsample_bytree=0.8,
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,
         verbosity=0,
     )
     model.fit(X_train, y_train)
@@ -464,8 +465,8 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
         mapped_columns = {"datetime": dt_col, "energy_kwh": energy_col}
         uploaded_df = uploaded_df.rename(columns={dt_col: "datetime", energy_col: "energy_kwh"})
 
-    # Parse datetime column flexibly
-    uploaded_df["datetime"] = pd.to_datetime(uploaded_df["datetime"], infer_datetime_format=True, errors="coerce")
+    # Parse datetime column flexibly (pandas 3.0+ infers format automatically)
+    uploaded_df["datetime"] = pd.to_datetime(uploaded_df["datetime"], errors="coerce")
     uploaded_df = uploaded_df.dropna(subset=["datetime"])
     uploaded_df["energy_kwh"] = pd.to_numeric(uploaded_df["energy_kwh"], errors="coerce")
     uploaded_df = uploaded_df.dropna(subset=["energy_kwh"])
@@ -478,15 +479,19 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
 
     uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
 
-    # ── Auto-retrain on user's real data ──────────────────────────────────────
-    custom_model, upload_accuracy = train_on_upload(uploaded_df)
-    if custom_model is not None:
-        # Store so /forecast can also use this model
-        custom_models[facility_type] = custom_model
-        active_model = custom_model
-    else:
-        # Not enough data — fall back to pre-trained
-        custom_models.pop(facility_type, None)
+    # ── Auto-retrain on user’s real data ──────────────────────────────────────
+    try:
+        custom_model, upload_accuracy = train_on_upload(uploaded_df)
+        if custom_model is not None:
+            custom_models[facility_type] = custom_model
+            active_model = custom_model
+        else:
+            custom_models.pop(facility_type, None)
+            active_model = models[facility_type]
+            upload_accuracy = None
+    except Exception as retrain_err:
+        print(f"[WARN] Auto-retrain failed: {retrain_err}")
+        traceback.print_exc()
         active_model = models[facility_type]
         upload_accuracy = None
     # ─────────────────────────────────────────────────────────────────────────
