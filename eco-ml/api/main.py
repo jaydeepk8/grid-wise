@@ -154,8 +154,8 @@ def train_on_upload(df: pd.DataFrame):
     work["target_next_hour"] = work["energy_kwh"].shift(-1)
     work = work.dropna().reset_index(drop=True)
 
-    if len(work) < 10:
-        return None, None   # Fall back to pre-trained model
+    if len(work) < 48:
+        return None, None   # Need at least 48 usable rows (~2 days) for reliable retrain
 
     X = work[FEATURES]
     y = work["target_next_hour"]
