@@ -11,6 +11,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import io
 import traceback
+from api.database import init_db, save_model, load_model, log_upload, get_upload_history
 
 app = FastAPI(title="GridWise Energy Prediction API")
 
@@ -32,16 +33,15 @@ FEATURES = ["hour", "day_of_week", "is_weekend", "prev_hour_energy", "rolling_3h
 
 @app.on_event("startup")
 def load_resources():
-    global models, datasets, accuracy_cache
+    global models, datasets, accuracy_cache, custom_models
+
+    # Initialise database (creates tables if needed)
+    init_db()
 
     print("Loading models and datasets...")
     model_dir = BASE_DIR / "model"
     data_dir = BASE_DIR / "data"
 
-    # Best model per facility based on benchmark (R², MAE, RMSE on 20% held-out test set):
-    #   Hospital:    XGBoost (R2 99.74%, RMSE 9.91)  vs RF (R2 99.73%, RMSE 10.22) — XGB wins on RMSE, 10x smaller
-    #   Data Center: XGBoost (R2 98.72%, MAE 15.65)  vs RF (R2 98.61%, MAE 15.98) — XGB clear winner
-    #   MNC:         RF      (R2 99.88%, MAE  5.20)  vs XGB (R2 99.85%, MAE 5.89) — RF clear winner
     facility_files = {
         "hospital":    ("hospital_energy_xgb.pkl",    "hospital_hourly_energy.csv",   "hospital_ml_ready.csv"),
         "data-center": ("datacenter_energy_xgb.pkl",  "datacenter_hourly_energy.csv", "datacenter_ml_ready.csv"),
@@ -72,6 +72,12 @@ def load_resources():
             "accuracy_percent": round(float(r2_score(y_test, y_pred)) * 100, 2),
             "model_type": type(models[key]).__name__,
         }
+
+        # Restore any previously saved custom model from DB
+        saved_model, saved_accuracy = load_model(key)
+        if saved_model is not None:
+            custom_models[key] = saved_model
+            print(f"[DB] Restored custom model for {key} (R²={saved_accuracy.get('r2', 0):.4f})")
 
     print("All resources loaded successfully!")
 
@@ -479,12 +485,14 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
 
     uploaded_df = uploaded_df.sort_values("datetime").reset_index(drop=True)
 
-    # ── Auto-retrain on user’s real data ──────────────────────────────────────
+    # ── Auto-retrain on user's real data ──────────────────────────────────────
     try:
         custom_model, upload_accuracy = train_on_upload(uploaded_df)
         if custom_model is not None:
             custom_models[facility_type] = custom_model
             active_model = custom_model
+            # Persist to DB so it survives server restarts
+            save_model(facility_type, custom_model, upload_accuracy)
         else:
             custom_models.pop(facility_type, None)
             active_model = models[facility_type]
@@ -546,6 +554,12 @@ async def upload_and_predict(file: UploadFile = File(...), facility_type: str = 
         result["mapped_columns"] = mapped_columns
     if upload_accuracy:
         result["upload_accuracy"] = upload_accuracy
+        log_upload(
+            facility_type = facility_type,
+            filename      = file.filename,
+            row_count     = len(uploaded_df),
+            r2            = upload_accuracy.get("r2"),
+        )
 
     return result
 
@@ -572,6 +586,19 @@ def forecast_energy(data: ForecastInput):
         rolling_6h_avg,
         custom_model=custom_models.get(facility_type),  # use model trained on user's data if available
     )
+
+
+@app.get("/uploads/{facility_type}")
+def get_uploads(facility_type: str):
+    """Return recent upload history for a facility."""
+    return {"facility": facility_type, "uploads": get_upload_history(facility_type)}
+
+
+@app.get("/db-status")
+def db_status():
+    """Check if database is connected."""
+    from api.database import DB_ENABLED
+    return {"db_enabled": DB_ENABLED}
 
 
 @app.get("/")
