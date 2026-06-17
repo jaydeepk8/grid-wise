@@ -54,6 +54,16 @@ if DB_ENABLED:
         r2            = Column(Float)
         uploaded_at   = Column(DateTime, default=datetime.utcnow)
 
+    class User(Base):
+        """Registered users."""
+        __tablename__ = "users"
+
+        id            = Column(Integer, primary_key=True, index=True)
+        name          = Column(String(100), nullable=False)
+        email         = Column(String(255), unique=True, nullable=False, index=True)
+        password_hash = Column(String(255), nullable=False)
+        created_at    = Column(DateTime, default=datetime.utcnow)
+
     def init_db():
         """Create tables if they don't exist."""
         try:
@@ -175,6 +185,60 @@ if DB_ENABLED:
             print(f"[DB ERROR] get_upload_history failed: {e}")
             return []
 
+    def create_user(name: str, email: str, password_hash: str):
+        """Insert a new user. Returns user dict or None if email taken."""
+        try:
+            db = SessionLocal()
+            try:
+                existing = db.query(User).filter(User.email == email).first()
+                if existing:
+                    return None  # email already registered
+                user = User(name=name, email=email, password_hash=password_hash)
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                return {"id": user.id, "name": user.name, "email": user.email}
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"[DB ERROR] create_user: {e}")
+            return None
+
+    def get_user_by_email(email: str):
+        """Return user row dict or None."""
+        try:
+            db = SessionLocal()
+            try:
+                user = db.query(User).filter(User.email == email).first()
+                if user is None:
+                    return None
+                return {
+                    "id":            user.id,
+                    "name":          user.name,
+                    "email":         user.email,
+                    "password_hash": user.password_hash,
+                }
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"[DB ERROR] get_user_by_email: {e}")
+            return None
+
+    def get_user_by_id(user_id: int):
+        """Return user dict or None."""
+        try:
+            db = SessionLocal()
+            try:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user is None:
+                    return None
+                return {"id": user.id, "name": user.name, "email": user.email}
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"[DB ERROR] get_user_by_id: {e}")
+            return None
+
 else:
     # No DATABASE_URL — all DB calls are no-ops
     print("[DB] No DATABASE_URL set — running without database (in-memory only).")
@@ -193,3 +257,12 @@ else:
 
     def get_upload_history(facility_type, limit=10):
         return []
+
+    def create_user(name, email, password_hash):
+        return None
+
+    def get_user_by_email(email):
+        return None
+
+    def get_user_by_id(user_id):
+        return None

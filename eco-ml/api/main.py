@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
@@ -12,6 +12,7 @@ from xgboost import XGBRegressor
 import io
 import traceback
 from api.database import init_db, save_model, load_model, log_upload, get_upload_history
+from api.auth import router as auth_router, get_current_user
 
 app = FastAPI(title="GridWise Energy Prediction API")
 
@@ -22,6 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -434,7 +437,11 @@ def detect_columns(df):
 
 
 @app.post("/upload-predict")
-async def upload_and_predict(file: UploadFile = File(...), facility_type: str = "hospital"):
+async def upload_and_predict(
+    file: UploadFile = File(...),
+    facility_type: str = "hospital",
+    current_user: dict = Depends(get_current_user),
+):
     contents = await file.read()
 
     # Parse without forcing column names — auto-detect after reading
