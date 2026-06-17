@@ -1,5 +1,6 @@
-﻿import "./globals.css";
+import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata = {
   title: { default: "GridWise", template: "%s | GridWise" },
@@ -29,8 +30,10 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#4a6741" />
       </head>
       <body className="bg-[#f1f4f1]">
-        <Navbar />
-        <main>{children}</main>
+        <AuthProvider>
+          <Navbar />
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
