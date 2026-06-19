@@ -35,7 +35,7 @@ export default function SummaryPage() {
         <div className="mb-12">
           <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-semibold mb-3">Overview</p>
           <h1
-            className="text-5xl text-[#2d3a2d] mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl text-[#2d3a2d] mb-4"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 400 }}
           >
             Facility Summary

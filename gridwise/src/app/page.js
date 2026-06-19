@@ -1,6 +1,6 @@
 "use client";
 
-import Hero from "@/components/Hero";;
+import Hero from "@/components/Hero";
 import Working from "@/components/Working";
 import Footer from "@/components/Footer";
 

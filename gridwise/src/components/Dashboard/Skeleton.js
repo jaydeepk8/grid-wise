@@ -22,7 +22,7 @@ export function KPISkeleton() {
 // Chart skeleton
 export function ChartSkeleton() {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm h-full">
+    <div className="bg-white rounded-2xl p-6 shadow-sm min-h-[320px]">
       <SkeletonBlock className="h-4 w-40 mb-6" />
       <div className="flex items-end gap-2 h-48">
         {[60, 80, 50, 90, 70, 85, 55, 75, 65, 95, 45, 80].map((h, i) => (

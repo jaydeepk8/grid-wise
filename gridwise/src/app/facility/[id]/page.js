@@ -278,7 +278,7 @@ export default function FacilityDetailPage() {
 
         {/* Time horizon tabs - only after upload */}
         {uploadedData && facility.hasData && (
-          <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit">
+          <div className="flex flex-wrap gap-1 bg-white rounded-2xl p-1.5 shadow-sm mb-8 w-fit max-w-full">
             {TABS.map((tab, i) => (
               <button
                 key={i}
@@ -351,7 +351,7 @@ export default function FacilityDetailPage() {
         {/* Download Report — only after upload */}
         {uploadedData && activeData && (
           <section className="mb-16">
-            <div className="bg-white rounded-2xl px-8 py-6 flex items-center justify-between shadow-sm">
+            <div className="bg-white rounded-2xl px-4 md:px-8 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
               <div>
                 <h3 className="text-lg font-serif text-[#2d3a2d] mb-1">Energy Prediction Report</h3>
                 <p className="text-sm text-slate-400">Download PDF report based on your uploaded data.</p>
