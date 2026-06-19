@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout, isAuthenticated, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const links = [
@@ -16,11 +13,6 @@ export default function Navbar() {
     { href: "/facility", label: "Facilities" },
     { href: "/summary", label: "Summary" },
   ];
-
-  const handleLogout = () => {
-    logout();
-    router.push("/");
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-[#4a6741]/10">
@@ -45,36 +37,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Auth section */}
-        {!loading && (
-          <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-slate-600 font-medium">
-                  👋 {user?.name?.split(" ")[0]}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium px-4 py-2 rounded-lg border border-[#4a6741]/30 text-[#4a6741] hover:bg-[#4a6741] hover:text-white transition-all"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login"
-                  className="text-sm font-medium text-slate-500 hover:text-[#4a6741] transition-colors">
-                  Sign in
-                </Link>
-                <Link href="/signup"
-                  className="text-sm font-medium px-4 py-2 rounded-lg bg-[#4a6741] text-white hover:bg-[#3a5331] transition-all">
-                  Get started
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-
         <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
           <span className="material-symbols-outlined text-[#4a6741]">{menuOpen ? "close" : "menu"}</span>
         </button>
@@ -92,21 +54,8 @@ export default function Navbar() {
               </Link>
             );
           })}
-          <div className="border-t border-slate-100 pt-3">
-            {isAuthenticated ? (
-              <button onClick={handleLogout} className="text-sm text-red-500 font-medium">
-                Logout ({user?.name})
-              </button>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-slate-600">Sign in</Link>
-                <Link href="/signup" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-[#4a6741]">Create account</Link>
-              </div>
-            )}
-          </div>
         </div>
       )}
     </nav>
   );
 }
-

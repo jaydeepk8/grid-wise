@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
 
 
 // Generate realistic 24-hour sample data based on facility energy profile
@@ -61,7 +59,6 @@ const FACILITY_LABELS = {
 };
 
 export default function FileUpload({ onDataLoaded, onFileReady, onLoadingChange, facilityType = "hospital" }) {
-  const { token, isAuthenticated } = useAuth();
   const [dragOver, setDragOver]       = useState(false);
   const [file, setFile]               = useState(null);
   const [error, setError]             = useState(null);
@@ -99,12 +96,9 @@ export default function FileUpload({ onDataLoaded, onFileReady, onLoadingChange,
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       console.log("[GridWise] Uploading to:", `${apiUrl}/upload-predict?facility_type=${facilityType}`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout for Render cold start + retrain
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res  = await fetch(`${apiUrl}/upload-predict?facility_type=${facilityType}`, {
+      const timeout = setTimeout(() => controller.abort(), 120000);
+      const res = await fetch(`${apiUrl}/upload-predict?facility_type=${facilityType}`, {
         method: "POST",
-        headers,
         body: formData,
         signal: controller.signal,
       });
